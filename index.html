@@ -608,7 +608,7 @@
 
   .muscle-tag.active { background: rgba(232,255,71,0.15); border-color: var(--accent); color: var(--accent); }
 
-  /* NEW RESPONSIVE BREAKPOINT FOR MOBILE */
+  /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
     header {
       flex-direction: column;
@@ -624,17 +624,40 @@
     .form-row, .form-row-2 { grid-template-columns: 1fr; } 
     .pr-grid { grid-template-columns: 1fr; }
 
+    /* Give mobile screens more breathing room */
+    .card { padding: 16px; }
+
+    /* Force grid columns to allow shrinking */
+    .form-row > div, .form-row-2 > div {
+      min-width: 0;
+      width: 100%;
+    }
+
+    /* Strip iOS forced minimum widths on inputs */
+    input, select, textarea {
+      padding: 10px;
+    }
+
+    input[type="date"] {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    /* Hide desktop exercise headers */
     #exerciseHeaders { display: none; }
 
+    /* Reformat exercise inputs to stack on mobile */
     .exercise-item { 
       grid-template-columns: 1fr 1fr 1fr 40px; 
       grid-template-rows: auto auto;
       gap: 8px 6px;
     }
     
-    .exercise-item input[data-field="name"] {
-      grid-column: 1 / span 3;
-    }
+    .exercise-item input[data-field="name"] { grid-column: 1 / span 3; }
     
     .exercise-item input[data-field="sets"],
     .exercise-item input[data-field="reps"],
