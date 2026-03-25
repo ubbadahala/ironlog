@@ -287,14 +287,15 @@ input, select, textarea {
 
   .exercise-item {
     display: grid;
-    grid-template-columns: 1fr 80px 80px 80px 36px;
-    gap: 10px;
-    align-items: center; /* Align centers instead of bottom since inputs have no bottom margin now */
+    grid-template-columns: 1fr 100px 70px 70px 80px 36px;
+    gap: 8px;
+    align-items: center;
     margin-bottom: 10px;
     animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
-  .exercise-item input { margin-bottom: 0; padding: 10px; }
+  .exercise-item input,
+  .exercise-item select { margin-bottom: 0; padding: 10px; }
 
   /* BUTTONS */
   .btn {
@@ -748,22 +749,21 @@ input, select, textarea {
     #exerciseHeaders { display: none !important; }
     .exercise-item { 
       grid-template-columns: 1fr 1fr 1fr 40px; 
-      grid-template-rows: auto auto;
-      gap: 10px;
+      grid-template-rows: auto auto auto;
+      gap: 8px;
     }
-    
     .exercise-item .name-wrapper {
-      grid-column: 1 / span 3; /* Force the wrapper to span full width on mobile */
+      grid-column: 1 / span 3;
     }
-
-    .exercise-item input { min-width: 0; margin-bottom: 0; }
-    .exercise-item input[data-field="name"] {
-      grid-column: auto; 
+    .exercise-item .muscle-select-wrap {
+      grid-column: 1 / span 3;
+      grid-row: 2;
     }
     .exercise-item input[data-field="sets"],
     .exercise-item input[data-field="reps"],
-    .exercise-item input[data-field="weight"] { grid-row: 2; }
+    .exercise-item input[data-field="weight"] { grid-row: 3; }
     .exercise-item .btn-icon { grid-column: 4; grid-row: 1 / span 2; height: 100%; }
+    .exercise-item input { min-width: 0; margin-bottom: 0; }
     
     .timer-display { font-size: 6.5rem; }
   }
@@ -1152,7 +1152,12 @@ input, select, textarea {
     border-top-color: rgba(232,255,71,0.3);
     border-radius: 14px;
     padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    min-height: 90px;
   }
 
   .recap-stat-val {
@@ -1412,37 +1417,22 @@ input, select, textarea {
         </div>
       </div>
 
-      <div class="form-row-2">
-        <div>
-          <label>Workout Name</label>
-          <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…">
-        </div>
-        <div>
-          <label>Date</label>
-          <input type="date" id="wDate">
-        </div>
+      <div>
+        <label>Workout Name</label>
+        <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…">
       </div>
       <div>
-        <label>Muscle Group</label>
-        <select id="wMuscle">
-          <option value="">Select…</option>
-          <option>Chest</option>
-          <option>Back</option>
-          <option>Shoulders</option>
-          <option>Arms</option>
-          <option>Legs</option>
-          <option>Core</option>
-          <option>Full Body</option>
-          <option>Cardio</option>
-        </select>
+        <label>Date</label>
+        <input type="date" id="wDate">
       </div>
 
       <label style="margin-top: 8px;">Exercises</label>
-      <div id="exerciseHeaders" style="display:grid; grid-template-columns:1fr 80px 80px 80px 36px; gap:10px; margin-bottom:8px;">
-        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
-        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
-        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
-        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
+      <div id="exerciseHeaders" style="display:grid; grid-template-columns:1fr 100px 70px 70px 80px 36px; gap:8px; margin-bottom:6px; padding:0 2px;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
         <span></span>
       </div>
       <div class="exercises-list" id="exercisesList"></div>
@@ -1591,13 +1581,19 @@ input, select, textarea {
       <div class="card-title">Exercise Database</div>
       <p style="font-size:0.85rem; color:var(--text); opacity:0.8; margin-bottom:16px;">Manage the exercises that appear in the autocomplete dropdown.</p>
       
-      <div style="display:flex; gap:10px; margin-bottom:16px;">
-        <input type="text" id="newExerciseInput" placeholder="New exercise name..." style="margin-bottom:0; flex:1;">
-        <button class="btn btn-primary" style="width:auto; padding:10px 20px;" onclick="addCustomExercise()">Add</button>
+      <div style="display:grid; grid-template-columns:1fr 130px auto; gap:8px; margin-bottom:16px;">
+        <input type="text" id="newExerciseInput" placeholder="Exercise name…" style="margin-bottom:0;">
+        <select id="newExerciseMuscle" style="margin-bottom:0;">
+          <option value="">Muscle…</option>
+          <option>Chest</option><option>Back</option><option>Shoulders</option>
+          <option>Arms</option><option>Legs</option><option>Core</option>
+          <option>Full Body</option><option>Cardio</option>
+        </select>
+        <button class="btn btn-primary" style="width:auto; padding:10px 18px; white-space:nowrap;" onclick="addCustomExercise()">Add</button>
       </div>
-      
-      <div id="settingsExerciseList" style="max-height: 240px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(0,0,0,0.2); padding: 8px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);">
-        </div>
+
+      <div id="settingsExerciseList" style="max-height: 360px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(0,0,0,0.2); padding: 4px 6px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);">
+      </div>
       
       <button class="btn btn-ghost" style="width:100%; margin-top:20px; font-size: 0.75rem; padding: 12px;" onclick="restoreDefaultExercises()">↺ Restore Default List</button>
     </div>
@@ -1672,27 +1668,17 @@ input, select, textarea {
         <input type="date" id="editWDate">
       </div>
     </div>
-    <div class="form-row-2">
-      <div>
-        <label>Duration (minutes)</label>
-        <input type="number" id="editWDuration" placeholder="60" min="1">
-      </div>
-      <div>
-        <label>Muscle Group</label>
-        <select id="editWMuscle">
-          <option value="">Select…</option>
-          <option>Chest</option><option>Back</option><option>Shoulders</option>
-          <option>Arms</option><option>Legs</option><option>Core</option>
-          <option>Full Body</option><option>Cardio</option>
-        </select>
-      </div>
+    <div>
+      <label>Duration (minutes)</label>
+      <input type="number" id="editWDuration" placeholder="60" min="1">
     </div>
     <label style="margin-top:4px;">Exercises</label>
-    <div id="editExerciseHeaders" style="display:grid;grid-template-columns:1fr 80px 80px 80px 36px;gap:10px;margin-bottom:8px;">
-      <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
+    <div id="editExerciseHeaders" style="display:grid;grid-template-columns:1fr 100px 70px 70px 80px 36px;gap:8px;margin-bottom:6px;padding:0 2px;">
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
       <span></span>
     </div>
     <div class="exercises-list" id="editExercisesList"></div>
@@ -1778,14 +1764,37 @@ let chartInstance = null;
 let chartRange = '4w';
 
 const defaultExercises = [
-  "Barbell Row", "Bench Press (Barbell)", "Bicep Curl (Dumbbell)", "Calf Raise", 
-  "Chest Fly (Cable)", "Deadlift (Barbell)", "Incline Bench Press (Dumbbell)", 
-  "Lat Pulldown (Cable)", "Lateral Raise (Dumbbell)", "Leg Press", 
-  "Overhead Press (Dumbbell)", "Pull-up", "Romanian Deadlift (Barbell)", 
-  "Squat (Barbell)", "Tricep Pushdown (Cable)"
+  { name: "Barbell Row",                  muscle: "Back" },
+  { name: "Bench Press (Barbell)",         muscle: "Chest" },
+  { name: "Bicep Curl (Dumbbell)",         muscle: "Arms" },
+  { name: "Calf Raise",                    muscle: "Legs" },
+  { name: "Chest Fly (Cable)",             muscle: "Chest" },
+  { name: "Deadlift (Barbell)",            muscle: "Back" },
+  { name: "Incline Bench Press (Dumbbell)",muscle: "Chest" },
+  { name: "Lat Pulldown (Cable)",          muscle: "Back" },
+  { name: "Lateral Raise (Dumbbell)",      muscle: "Shoulders" },
+  { name: "Leg Press",                     muscle: "Legs" },
+  { name: "Overhead Press (Dumbbell)",     muscle: "Shoulders" },
+  { name: "Pull-up",                       muscle: "Back" },
+  { name: "Romanian Deadlift (Barbell)",   muscle: "Legs" },
+  { name: "Squat (Barbell)",               muscle: "Legs" },
+  { name: "Tricep Pushdown (Cable)",       muscle: "Arms" },
 ];
 
-let exercisesDB = JSON.parse(localStorage.getItem('ironlog_exercises')) || [...defaultExercises];
+// Migrate legacy flat-string arrays saved in localStorage
+function migrateExercisesDB(raw) {
+  if (!raw) return [...defaultExercises];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [...defaultExercises];
+    // Already new format
+    if (parsed.length > 0 && typeof parsed[0] === 'object') return parsed;
+    // Legacy: array of strings
+    return parsed.map(name => ({ name, muscle: '' }));
+  } catch { return [...defaultExercises]; }
+}
+
+let exercisesDB = migrateExercisesDB(localStorage.getItem('ironlog_exercises'));
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -1820,42 +1829,71 @@ function switchTab(tab, btn) {
 // ─── EXERCISE DATABASE LOGIC ──────────────────────────────────────────────────
 function renderExerciseDB() {
   const datalist = document.getElementById('exercise-db');
-  datalist.innerHTML = exercisesDB.map(ex => `<option value="${ex}">`).join('');
+  datalist.innerHTML = exercisesDB.map(ex => `<option value="${ex.name}">`).join('');
 }
+
+const MUSCLE_OPTIONS = ['', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Cardio'];
 
 function renderSettingsExerciseList() {
   const list = document.getElementById('settingsExerciseList');
   if (exercisesDB.length === 0) {
-    list.innerHTML = `<div style="padding: 16px; color: var(--text); opacity: 0.6; font-size: 0.85rem; text-align: center;">No exercises found.</div>`;
+    list.innerHTML = `<div style="padding:16px;color:var(--text);opacity:0.6;font-size:0.85rem;text-align:center;">No exercises found.</div>`;
     return;
   }
-  
+
   list.innerHTML = exercisesDB.map((ex, index) => `
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 10px; border-bottom:1px solid rgba(255,255,255,0.05);">
-      <span style="font-size: 0.95rem; color: var(--text);">${ex}</span>
-      <button class="btn-icon" style="width:32px; height:32px; font-size:0.9rem;" onclick="removeCustomExercise(${index})">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 130px 36px;gap:8px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <input type="text" value="${ex.name}"
+        style="margin-bottom:0;font-size:0.9rem;padding:9px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:100%;"
+        onchange="renameExercise(${index}, this.value)"
+        onfocus="this.style.borderColor='rgba(232,255,71,0.5)'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+      <select style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:${ex.muscle?'var(--text)':'var(--muted)'};font-family:'DM Sans',sans-serif;outline:none;width:100%;"
+        onchange="setExerciseMuscle(${index}, this.value)"
+        onfocus="this.style.borderColor='rgba(232,255,71,0.5)'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+        ${MUSCLE_OPTIONS.map(m => `<option value="${m}" ${ex.muscle === m ? 'selected' : ''}>${m || '— muscle —'}</option>`).join('')}
+      </select>
+      <button class="btn-icon" style="width:36px;height:36px;font-size:0.9rem;" onclick="removeCustomExercise(${index})">✕</button>
     </div>
   `).join('');
 }
 
 function addCustomExercise() {
-  const input = document.getElementById('newExerciseInput');
-  const val = input.value.trim();
+  const nameInput = document.getElementById('newExerciseInput');
+  const muscleInput = document.getElementById('newExerciseMuscle');
+  const val = nameInput.value.trim();
   if (!val) return;
-  
-  const exists = exercisesDB.some(ex => ex.toLowerCase() === val.toLowerCase());
+
+  const exists = exercisesDB.some(ex => ex.name.toLowerCase() === val.toLowerCase());
   if (exists) return toast('Exercise already exists!');
-  
-  exercisesDB.push(val);
-  exercisesDB.sort((a, b) => a.localeCompare(b));
+
+  exercisesDB.push({ name: val, muscle: muscleInput.value });
+  exercisesDB.sort((a, b) => a.name.localeCompare(b.name));
   saveExercises();
-  
-  input.value = '';
-  toast('Exercise added to database!');
+
+  nameInput.value = '';
+  muscleInput.value = '';
+  toast('Exercise added! 💪');
+}
+
+function renameExercise(index, newName) {
+  newName = newName.trim();
+  if (!newName) return renderSettingsExerciseList();
+  const dup = exercisesDB.some((ex, i) => i !== index && ex.name.toLowerCase() === newName.toLowerCase());
+  if (dup) { toast('Name already exists!'); return renderSettingsExerciseList(); }
+  exercisesDB[index].name = newName;
+  saveExercises();
+  toast('Renamed ✓');
+}
+
+function setExerciseMuscle(index, muscle) {
+  exercisesDB[index].muscle = muscle;
+  saveExercises();
 }
 
 function removeCustomExercise(index) {
-  if (confirm(`Delete "${exercisesDB[index]}" from the database?`)) {
+  if (confirm(`Delete "${exercisesDB[index].name}" from the database?`)) {
     exercisesDB.splice(index, 1);
     saveExercises();
   }
@@ -2002,37 +2040,56 @@ function addExerciseRow(ex = {}) {
   const row = document.createElement('div');
   row.className = 'exercise-item';
   row.id = 'ex-' + id;
-  
-  // Using a Template Literal (backticks) to avoid quote errors
+
+  const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
+    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
+
   row.innerHTML = `
     <div class="name-wrapper">
        <input type="text" placeholder="Exercise" value="${ex.name || ''}" 
               data-field="name" list="exercise-db" autocomplete="off"
-              oninput="updateDelta(${id})">
+              oninput="updateDelta(${id}); autoFillExerciseMuscle(${id}, this.value)">
        <button class="history-peek-btn" onclick="peekHistory(${id})">LOGS</button>
     </div>
-    
+
+    <div class="muscle-select-wrap">
+      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;">
+        ${muscleOptions}
+      </select>
+    </div>
+
     <div style="position:relative">
        <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
     </div>
-    
+
     <div style="position:relative">
        <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}" 
               oninput="updateDelta(${id})">
     </div>
-    
+
     <div class="weight-wrapper" style="position:relative">
        <button class="predict-btn" onclick="predictLoad(${id})">🪄</button>
        <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" 
               oninput="updateDelta(${id})" 
               onchange="triggerSmartTimer(this.closest('.exercise-item').querySelector('[data-field=name]').value)">
     </div>
-    
+
     <button class="btn btn-icon" onclick="removeExercise(${id})">✕</button>
   `;
-  
+
   document.getElementById('exercisesList').appendChild(row);
   if (ex.name) setTimeout(() => updateDelta(id), 50);
+}
+
+function autoFillExerciseMuscle(id, value) {
+  const val = value.trim().toLowerCase();
+  if (!val) return;
+  const match = exercisesDB.find(ex => ex.name.toLowerCase() === val);
+  if (!match || !match.muscle) return;
+  const row = document.getElementById('ex-' + id);
+  if (!row) return;
+  const sel = row.querySelector('[data-field="muscle"]');
+  if (sel && !sel.value) sel.value = match.muscle;
 }
 
 function peekHistory(id) {
@@ -2057,6 +2114,7 @@ function collectExercises() {
   const rows = document.querySelectorAll('.exercise-item');
   return Array.from(rows).map(row => ({
     name: row.querySelector('[data-field="name"]').value.trim(),
+    muscle: row.querySelector('[data-field="muscle"]')?.value || '',
     sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
     reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
     weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
@@ -2155,12 +2213,17 @@ function saveWorkout(durationMins) {
   }, 0);
   const isVolumePR = currentVolume > maxVolume && workouts.length > 0;
 
+  // Derive primary muscle group from exercises (most common non-empty value)
+  const muscleCounts = {};
+  exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
+  const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || '';
+
   const workout = {
     id: Date.now(),
     name,
     date,
     duration: durationMins || 0,
-    muscle: document.getElementById('wMuscle').value,
+    muscle: primaryMuscle,
     notes: document.getElementById('wNotes').value.trim(),
     exercises,
   };
@@ -2550,9 +2613,14 @@ function addEditExerciseRow(ex = {}) {
   const row = document.createElement('div');
   row.className = 'exercise-item';
   row.id = 'editex-' + id;
+  const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
+    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
   row.innerHTML = `
     <div class="name-wrapper">
       <input type="text" placeholder="Exercise" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
+    </div>
+    <div class="muscle-select-wrap">
+      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;">${muscleOptions}</select>
     </div>
     <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
     <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}">
@@ -2569,12 +2637,17 @@ function saveEditedWorkout() {
 
   const exercises = Array.from(document.querySelectorAll('#editExercisesList .exercise-item')).map(row => ({
     name: row.querySelector('[data-field="name"]').value.trim(),
+    muscle: row.querySelector('[data-field="muscle"]')?.value || '',
     sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
     reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
     weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
   })).filter(e => e.name);
 
   if (!exercises.length) return toast('Add at least one exercise!');
+
+  const muscleCounts = {};
+  exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
+  const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || workouts.find(w=>w.id===editingWorkoutId)?.muscle || '';
 
   const idx = workouts.findIndex(w => w.id === editingWorkoutId);
   if (idx === -1) return toast('Workout not found!');
@@ -2584,7 +2657,7 @@ function saveEditedWorkout() {
     name,
     date,
     duration: parseInt(document.getElementById('editWDuration').value) || 0,
-    muscle: document.getElementById('editWMuscle').value,
+    muscle: primaryMuscle,
     notes: document.getElementById('editWNotes').value.trim(),
     exercises,
   };
@@ -3089,7 +3162,7 @@ function importJSON() {
         if (imported.workouts && imported.recovery) {
           workouts = imported.workouts;
           recoveryLogs = imported.recovery;
-          if (imported.exercises) exercisesDB = imported.exercises;
+          if (imported.exercises) exercisesDB = migrateExercisesDB(JSON.stringify(imported.exercises));
           
           localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
           localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
