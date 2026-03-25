@@ -749,8 +749,15 @@ input, select, textarea {
       grid-template-rows: auto auto;
       gap: 10px;
     }
+    
+    .exercise-item .name-wrapper {
+      grid-column: 1 / span 3; /* Force the wrapper to span full width on mobile */
+    }
+
     .exercise-item input { min-width: 0; margin-bottom: 0; }
-    .exercise-item input[data-field="name"] { grid-column: 1 / span 3; }
+    .exercise-item input[data-field="name"] {
+      grid-column: auto; 
+    }
     .exercise-item input[data-field="sets"],
     .exercise-item input[data-field="reps"],
     .exercise-item input[data-field="weight"] { grid-row: 2; }
@@ -968,6 +975,64 @@ input, select, textarea {
     text-transform: uppercase;
   }
 
+  /* RADAR CHART CONTAINER */
+  .radar-container {
+    max-height: 300px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* QUICK PEEK POPOVER */
+  .name-wrapper {
+    grid-column: 1; /* Default for desktop */
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+  }
+
+  .history-peek-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    background: rgba(232, 255, 71, 0.15);
+    border: 1px solid rgba(232, 255, 71, 0.3);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .history-peek-btn:hover {
+    background: var(--accent);
+    color: #000;
+  }
+
+  /* Ensure the text doesn't hide under the button */
+  .name-wrapper input {
+    padding-right: 55px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .history-peek-btn:hover { background: rgba(232, 255, 71, 0.1); }
+
+  /* CONFETTI ANIMATION FOR VOLUME PR */
+  @keyframes confetti-fall {
+    0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+  }
+  .confetti {
+    position: fixed; width: 10px; height: 10px; background: var(--accent);
+    z-index: 3000; pointer-events: none; animation: confetti-fall 3s linear forwards;
+  }
+
 </style>
 </head>
 <body>
@@ -1152,6 +1217,13 @@ input, select, textarea {
       <div class="pr-grid" id="prGrid"></div>
     </div>
 
+    <div class="card glass-panel">
+      <div class="card-title">Muscle Group Distribution</div>
+      <div class="radar-container">
+        <canvas id="muscleRadarChart"></canvas>
+      </div>
+    </div>
+
     <div class="card glass-panel chart-container-glass">
       <div class="card-title">Training & Recovery Correlation</div>
       
@@ -1269,6 +1341,7 @@ function switchTab(tab) {
      renderProgress(); 
      renderNutritionInsights();
   renderHeatmap();
+  renderRadarChart();
   }
 }
 
@@ -1442,13 +1515,29 @@ function addExerciseRow(ex = {}) {
   row.className = 'exercise-item';
   row.id = 'ex-' + id;
   row.innerHTML = `
-    <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
+    <div class="name-wrapper">
+       <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
+       <button class="history-peek-btn" onclick="peekHistory(${id})">LOGS</button>
+    </div>
     <input type="number" placeholder="Sets" min="1" value="${ex.sets || ''}" data-field="sets">
     <input type="number" placeholder="Reps" min="1" value="${ex.reps || ''}" data-field="reps">
     <input type="number" placeholder="Kg" min="0" step="0.5" value="${ex.weight || ''}" data-field="weight">
     <button class="btn btn-icon" onclick="removeExercise(${id})">✕</button>
   `;
   document.getElementById('exercisesList').appendChild(row);
+}
+
+function peekHistory(id) {
+  const name = document.querySelector(`#ex-${id} [data-field="name"]`).value.trim();
+  if (!name) return toast("Enter an exercise name first");
+  
+  const history = workouts.flatMap(w => w.exercises
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .map(e => `${formatDate(w.date)}: ${e.sets}x${e.reps} @ ${e.weight}kg`))
+    .slice(0, 3);
+    
+  if (history.length === 0) return toast("No history found for this exercise");
+  alert(`Last 3 sessions for ${name}:\n\n${history.join('\n')}`);
 }
 
 function removeExercise(id) {
@@ -1503,6 +1592,19 @@ function saveWorkout() {
   const exercises = collectExercises();
   if (!exercises.length) return toast('Add at least one exercise!');
 
+  const currentVolume = exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+  
+    // Check for Volume PR
+    const maxVolume = workouts.reduce((max, w) => {
+      const v = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+      return v > max ? v : max;
+    }, 0);
+
+    if (currentVolume > maxVolume && workouts.length > 0) {
+      triggerConfetti();
+      toast("🔥 NEW ALL-TIME VOLUME PR!");
+    }
+
   const workout = {
     id: Date.now(),
     name,
@@ -1526,6 +1628,18 @@ function saveWorkout() {
   addExerciseRow();
 }
 
+function triggerConfetti() {
+  for (let i = 0; i < 50; i++) {
+    const div = document.createElement('div');
+    div.className = 'confetti';
+    div.style.left = Math.random() * 100 + 'vw';
+    div.style.backgroundColor = Math.random() > 0.5 ? 'var(--accent)' : 'var(--green)';
+    div.style.animationDelay = Math.random() * 2 + 's';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+  }
+}
+
 // ─── STATS ────────────────────────────────────────────────────────────────────
 function updateStats() {
   document.getElementById('statTotal').textContent = workouts.length;
@@ -1541,6 +1655,54 @@ function updateStats() {
     return acc + w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
   }, 0);
   document.getElementById('statVolume').textContent = Math.round(totalVol).toLocaleString();
+}
+
+// ─── MUSCLE RADAR ─────────────────────────────────────────────────────────────
+
+let radarInstance = null;
+
+function renderRadarChart() {
+  const canvas = document.getElementById('muscleRadarChart');
+  if (!canvas) return;
+
+  const distribution = {
+    'Chest': 0, 'Back': 0, 'Shoulders': 0, 
+    'Arms': 0, 'Legs': 0, 'Core': 0
+  };
+
+  workouts.forEach(w => {
+    if (distribution[w.muscle] !== undefined) {
+      distribution[w.muscle]++;
+    }
+  });
+
+  if (radarInstance) radarInstance.destroy();
+
+  radarInstance = new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: Object.keys(distribution),
+      datasets: [{
+        label: 'Workout Frequency',
+        data: Object.values(distribution),
+        backgroundColor: 'rgba(232,255,71,0.2)',
+        borderColor: '#e8ff47',
+        pointBackgroundColor: '#e8ff47',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(255,255,255,0.1)' },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          pointLabels: { color: '#888', font: { family: 'DM Mono' } },
+          ticks: { display: false }
+        }
+      }
+    }
+  });
 }
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
