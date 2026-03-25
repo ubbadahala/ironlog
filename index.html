@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IronLog — Gym Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --red: #ff4444;
+    --green: #44ff88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .logo span { color: var(--text); }
+
+  .date-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* STAT CARDS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* LOG WORKOUT FORM */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  select option { background: #1a1a1a; }
+
+  textarea { resize: vertical; min-height: 60px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .exercises-list { margin-bottom: 16px; }
+
+  .exercise-item {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 80px 36px;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 8px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .exercise-item input { margin-bottom: 0; }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+    width: 100%;
+    padding: 13px;
+    font-size: 0.85rem;
+  }
+
+  .btn-primary:hover { background: #d4eb2a; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+  .btn-icon {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--border);
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+
+  .btn-icon:hover { background: rgba(255,68,68,0.1); border-color: var(--red); }
+
+  .btn-add-exercise {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+
+  .btn-add-exercise:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* WORKOUT HISTORY */
+  .workout-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .workout-entry:hover {
+    border-color: var(--accent);
+    transform: translateX(2px);
+  }
+
+  .workout-entry::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent2);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .workout-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .workout-entry-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+
+  .workout-meta {
+    display: flex;
+    gap: 16px;
+  }
+
+  .meta-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .meta-pill strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .exercise-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .expanded-detail {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .workout-entry.open .expanded-detail { display: block; }
+
+  .exercise-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.73rem;
+  }
+
+  .exercise-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.62rem;
+    padding: 4px 8px 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .exercise-table td {
+    padding: 6px 8px 6px 0;
+    color: var(--text);
+  }
+
+  .exercise-table tr:not(:last-child) td {
+    border-bottom: 1px solid rgba(42,42,42,0.5);
+  }
+
+  .pr-badge {
+    background: rgba(232,255,71,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(232,255,71,0.3);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  .delete-workout {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid rgba(255,68,68,0.3);
+    color: var(--red);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .delete-workout:hover { background: rgba(255,68,68,0.1); }
+
+  /* PROGRESS VIEW */
+  .pr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .pr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .pr-exercise {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .pr-weight {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .pr-detail {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* CHART */
+  .chart-section { margin-bottom: 24px; }
+
+  .chart-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .chart-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .chart-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .chart-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+  }
+
+  canvas { display: block; max-height: 220px; }
+
+  .muscle-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .muscle-tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .muscle-tag.active { background: rgba(232,255,71,0.15); border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr 1fr; }
+    .exercise-item { grid-template-columns: 1fr 70px 70px 70px 36px; }
+    .pr-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">Iron<span>Log</span></div>
+    <div class="date-display" id="dateDisplay"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log')">Log</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+    <button class="tab" onclick="switchTab('progress')">Progress</button>
+  </div>
+
+  <!-- LOG TAB -->
+  <div class="view active" id="view-log">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Workouts</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub">sessions logged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value" id="statWeek">0</div>
+        <div class="stat-sub">workouts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Volume</div>
+        <div class="stat-value" id="statVolume">0</div>
+        <div class="stat-sub">kg lifted all-time</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Log Workout</div>
+
+      <div class="form-row-2">
+        <div>
+          <label>Workout Name</label>
+          <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…">
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="date" id="wDate">
+        </div>
+      </div>
+
+      <div class="form-row-2">
+        <div>
+          <label>Duration (minutes)</label>
+          <input type="number" id="wDuration" placeholder="60" min="1">
+        </div>
+        <div>
+          <label>Muscle Group</label>
+          <select id="wMuscle">
+            <option value="">Select…</option>
+            <option>Chest</option>
+            <option>Back</option>
+            <option>Shoulders</option>
+            <option>Arms</option>
+            <option>Legs</option>
+            <option>Core</option>
+            <option>Full Body</option>
+            <option>Cardio</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Exercises</label>
+      <div style="display:grid; grid-template-columns:1fr 80px 80px 80px 36px; gap:8px; margin-bottom:6px;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
+        <span></span>
+      </div>
+      <div class="exercises-list" id="exercisesList"></div>
+      <button class="btn-add-exercise" onclick="addExerciseRow()">+ Add Exercise</button>
+
+      <div>
+        <label>Notes</label>
+        <textarea id="wNotes" placeholder="How did it feel? Any PRs?"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveWorkout()">Save Workout</button>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="view" id="view-history">
+    <div class="card" style="padding:16px 20px; margin-bottom:16px;">
+      <input type="text" id="searchInput" placeholder="Search workouts…" style="margin-bottom:0;" oninput="renderHistory()">
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- PROGRESS TAB -->
+  <div class="view" id="view-progress">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Personal Records</div>
+      <div class="pr-grid" id="prGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Volume Over Time</div>
+      <div class="chart-controls">
+        <button class="chart-btn active" onclick="setChartRange('4w', this)">4 Weeks</button>
+        <button class="chart-btn" onclick="setChartRange('3m', this)">3 Months</button>
+        <button class="chart-btn" onclick="setChartRange('all', this)">All Time</button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="volumeChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
+let exerciseCount = 0;
+let chartInstance = null;
+let chartRange = '4w';
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.getElementById('wDate').value = now.toISOString().split('T')[0];
+  document.getElementById('dateDisplay').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  addExerciseRow();
+  updateStats();
+});
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'progress') renderProgress();
+}
+
+// ─── EXERCISES ────────────────────────────────────────────────────────────────
+function addExerciseRow(ex = {}) {
+  exerciseCount++;
+  const id = exerciseCount;
+  const row = document.createElement('div');
+  row.className = 'exercise-item';
+  row.id = 'ex-' + id;
+  row.innerHTML = `
+    <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name">
+    <input type="number" placeholder="4" min="1" value="${ex.sets || ''}" data-field="sets">
+    <input type="number" placeholder="8" min="1" value="${ex.reps || ''}" data-field="reps">
+    <input type="number" placeholder="60" min="0" step="0.5" value="${ex.weight || ''}" data-field="weight">
+    <button class="btn btn-icon" onclick="removeExercise(${id})">✕</button>
+  `;
+  document.getElementById('exercisesList').appendChild(row);
+}
+
+function removeExercise(id) {
+  const el = document.getElementById('ex-' + id);
+  if (el) el.remove();
+}
+
+function collectExercises() {
+  const rows = document.querySelectorAll('.exercise-item');
+  return Array.from(rows).map(row => ({
+    name: row.querySelector('[data-field="name"]').value.trim(),
+    sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
+    reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
+    weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
+  })).filter(e => e.name);
+}
+
+// ─── SAVE WORKOUT ─────────────────────────────────────────────────────────────
+function saveWorkout() {
+  const name = document.getElementById('wName').value.trim();
+  const date = document.getElementById('wDate').value;
+  if (!name || !date) return toast('Add a name and date!');
+  const exercises = collectExercises();
+  if (!exercises.length) return toast('Add at least one exercise!');
+
+  const workout = {
+    id: Date.now(),
+    name,
+    date,
+    duration: parseInt(document.getElementById('wDuration').value) || 0,
+    muscle: document.getElementById('wMuscle').value,
+    notes: document.getElementById('wNotes').value.trim(),
+    exercises,
+  };
+
+  workouts.unshift(workout);
+  save();
+  updateStats();
+  toast('Workout saved! 💪');
+
+  // reset
+  document.getElementById('wName').value = '';
+  document.getElementById('wDuration').value = '';
+  document.getElementById('wNotes').value = '';
+  document.getElementById('exercisesList').innerHTML = '';
+  exerciseCount = 0;
+  addExerciseRow();
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('statTotal').textContent = workouts.length;
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+  const weekCount = workouts.filter(w => new Date(w.date) >= weekStart).length;
+  document.getElementById('statWeek').textContent = weekCount;
+
+  const totalVol = workouts.reduce((acc, w) => {
+    return acc + w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+  }, 0);
+  document.getElementById('statVolume').textContent = Math.round(totalVol).toLocaleString();
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
+function renderHistory() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const list = document.getElementById('historyList');
+  const filtered = workouts.filter(w =>
+    w.name.toLowerCase().includes(q) ||
+    w.muscle?.toLowerCase().includes(q) ||
+    w.exercises.some(e => e.name.toLowerCase().includes(q))
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div>No workouts found.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(w => {
+    const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+    const chips = w.exercises.map(e => `<span class="chip">${e.name}</span>`).join('');
+    const rows = w.exercises.map(e => `
+      <tr>
+        <td>${e.name}</td>
+        <td>${e.sets}</td>
+        <td>${e.reps}</td>
+        <td>${e.weight} kg</td>
+        <td>${Math.round(e.sets * e.reps * e.weight)} kg</td>
+      </tr>
+    `).join('');
+
+    return `
+    <div class="workout-entry" id="we-${w.id}" onclick="toggleEntry(${w.id})">
+      <div class="workout-entry-header">
+        <div class="workout-entry-name">${w.name}</div>
+        <div class="workout-meta">
+          ${w.muscle ? `<span class="meta-pill">${w.muscle}</span>` : ''}
+          ${w.duration ? `<span class="meta-pill"><strong>${w.duration}</strong> min</span>` : ''}
+          <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> kg</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="exercise-chips">${chips}</div>
+        <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);">${formatDate(w.date)}</span>
+      </div>
+      <div class="expanded-detail">
+        <table class="exercise-table">
+          <thead>
+            <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${w.notes ? `<p style="margin-top:12px;font-size:0.8rem;color:var(--muted);font-style:italic;">"${w.notes}"</p>` : ''}
+        <button class="delete-workout" onclick="event.stopPropagation();deleteWorkout(${w.id})">Delete Workout</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEntry(id) {
+  const el = document.getElementById('we-' + id);
+  el?.classList.toggle('open');
+}
+
+function deleteWorkout(id) {
+  if (!confirm('Delete this workout?')) return;
+  workouts = workouts.filter(w => w.id !== id);
+  save();
+  updateStats();
+  renderHistory();
+  toast('Workout deleted');
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+function renderProgress() {
+  renderPRs();
+  renderChart();
+}
+
+function renderPRs() {
+  // Find max weight per exercise
+  const prs = {};
+  workouts.forEach(w => {
+    w.exercises.forEach(e => {
+      if (!e.name) return;
+      const key = e.name.toLowerCase();
+      if (!prs[key] || e.weight > prs[key].weight) {
+        prs[key] = { name: e.name, weight: e.weight, sets: e.sets, reps: e.reps, date: w.date };
+      }
+    });
+  });
+
+  const grid = document.getElementById('prGrid');
+  const entries = Object.values(prs).sort((a, b) => b.weight - a.weight).slice(0, 8);
+  if (!entries.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:span 2"><div class="empty-icon">🏆</div>Log workouts to see your PRs.</div>`;
+    return;
+  }
+  grid.innerHTML = entries.map(pr => `
+    <div class="pr-card">
+      <div class="pr-exercise">${pr.name}</div>
+      <div class="pr-weight">${pr.weight} <span style="font-size:1rem;color:var(--muted)">kg</span></div>
+      <div class="pr-detail">${pr.sets}×${pr.reps} · ${formatDate(pr.date)}</div>
+    </div>
+  `).join('');
+}
+
+function renderChart() {
+  const canvas = document.getElementById('volumeChart');
+  if (!canvas) return;
+
+  const now = new Date();
+  let cutoff = new Date(0);
+  if (chartRange === '4w') { cutoff = new Date(now); cutoff.setDate(now.getDate() - 28); }
+  if (chartRange === '3m') { cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 3); }
+
+  const filtered = workouts
+    .filter(w => new Date(w.date) >= cutoff)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (chartInstance) chartInstance.destroy();
+
+  if (!filtered.length) {
+    canvas.style.display = 'none';
+    canvas.parentElement.innerHTML += `<div class="empty-state" style="padding:30px"><div class="empty-icon">📈</div>No data for this period.</div>`;
+    return;
+  }
+
+  canvas.style.display = 'block';
+
+  const labels = filtered.map(w => formatDate(w.date));
+  const volumes = filtered.map(w =>
+    w.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0)
+  );
+
+  chartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Volume (kg)',
+        data: volumes,
+        backgroundColor: 'rgba(232,255,71,0.25)',
+        borderColor: '#e8ff47',
+        borderWidth: 2,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#e8ff47',
+          bodyColor: '#f0f0f0',
+          titleFont: { family: 'DM Mono' },
+          bodyFont: { family: 'DM Mono' },
+          callbacks: {
+            label: ctx => `${Math.round(ctx.raw).toLocaleString()} kg`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,42,42,0.6)' },
+          ticks: { color: '#666', font: { family: 'DM Mono', size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(42,42,42,0.6)' },
+          ticks: { color: '#666', font: { family: 'DM Mono', size: 10 },
+            callback: v => v.toLocaleString() + ' kg'
+          }
+        }
+      }
+    }
+  });
+}
+
+function setChartRange(range, btn) {
+  chartRange = range;
+  document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrap = document.querySelector('.chart-wrap');
+  wrap.innerHTML = '<canvas id="volumeChart"></canvas>';
+  renderChart();
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('ironlog_workouts', JSON.stringify(workouts));
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+</script>
+</body>
+</html>
