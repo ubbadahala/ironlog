@@ -335,6 +335,37 @@
 
   .btn-add-exercise:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* HISTORY TAB BUTTONS */
+  .btn-share {
+    background: rgba(232,255,71,0.05);
+    border: 1px solid rgba(232,255,71,0.3);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-share:hover { background: rgba(232,255,71,0.15); border-color: var(--accent); }
+
+  .delete-workout {
+    background: transparent;
+    border: 1px solid rgba(255,68,68,0.3);
+    color: var(--red);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .delete-workout:hover { background: rgba(255,68,68,0.1); }
+
   /* WORKOUT HISTORY */
   .workout-entry {
     background: var(--surface);
@@ -466,22 +497,6 @@
     margin-left: 4px;
   }
 
-  .delete-workout {
-    margin-top: 14px;
-    background: transparent;
-    border: 1px solid rgba(255,68,68,0.3);
-    color: var(--red);
-    border-radius: 6px;
-    padding: 7px 14px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .delete-workout:hover { background: rgba(255,68,68,0.1); }
-
   /* PROGRESS VIEW */
   .pr-grid {
     display: grid;
@@ -594,35 +609,50 @@
 
   canvas { display: block; max-height: 220px; }
 
+  /* HIDDEN SHARE NODE CONTAINER */
+  #share-container {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .share-card {
+    width: 600px;
+    background: var(--bg);
+    padding: 50px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    position: relative;
+  }
+
+  .share-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+
+  .share-content { position: relative; z-index: 1; }
+
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
-    header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-    
-    .date-display {
-      text-align: left;
-    }
-
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .date-display { text-align: left; }
     .stats-row { grid-template-columns: 1fr; } 
     .form-row, .form-row-2 { grid-template-columns: 1fr; } 
     .pr-grid { grid-template-columns: 1fr; }
-
-    /* Give mobile screens more breathing room */
     .card { padding: 16px; }
 
-    /* Force grid columns to allow shrinking */
     .form-row > div, .form-row-2 > div {
       min-width: 0;
       width: 100%;
     }
 
-    /* Strip iOS forced minimum widths on inputs */
-    input, select, textarea {
-      padding: 10px;
-    }
+    input, select, textarea { padding: 10px; }
 
     input[type="date"] {
       display: block;
@@ -633,33 +663,20 @@
       appearance: none;
     }
 
-    /* Force hide desktop exercise headers despite inline styles */
     #exerciseHeaders { display: none !important; }
 
-    /* Reformat exercise inputs to stack cleanly on mobile */
     .exercise-item { 
       grid-template-columns: 1fr 1fr 1fr 40px; 
       grid-template-rows: auto auto;
       gap: 8px 6px;
     }
     
-    .exercise-item input {
-      min-width: 0; /* Prevents inputs from blowing out the grid */
-    }
-
+    .exercise-item input { min-width: 0; }
     .exercise-item input[data-field="name"] { grid-column: 1 / span 3; }
-    
     .exercise-item input[data-field="sets"],
     .exercise-item input[data-field="reps"],
-    .exercise-item input[data-field="weight"] {
-      grid-row: 2;
-    }
-    
-    .exercise-item .btn-icon {
-      grid-column: 4;
-      grid-row: 1 / span 2;
-      height: 100%;
-    }
+    .exercise-item input[data-field="weight"] { grid-row: 2; }
+    .exercise-item .btn-icon { grid-column: 4; grid-row: 1 / span 2; height: 100%; }
   }
 </style>
 </head>
@@ -699,7 +716,6 @@
 
     <div class="card">
       <div class="card-title">Log Workout</div>
-
       <div class="form-row-2">
         <div>
           <label>Workout Name</label>
@@ -710,7 +726,6 @@
           <input type="date" id="wDate">
         </div>
       </div>
-
       <div class="form-row-2">
         <div>
           <label>Duration (minutes)</label>
@@ -747,7 +762,6 @@
         <label>Notes</label>
         <textarea id="wNotes" placeholder="How did it feel? Any PRs?"></textarea>
       </div>
-
       <button class="btn btn-primary" onclick="saveWorkout()">Save Workout</button>
     </div>
   </div>
@@ -764,7 +778,6 @@
       <div class="card-title">Personal Records</div>
       <div class="pr-grid" id="prGrid"></div>
     </div>
-
     <div class="card">
       <div class="card-title">Volume Over Time</div>
       <div class="chart-controls">
@@ -797,9 +810,16 @@
   </div>
 </div>
 
+<div id="share-container">
+  <div id="share-node" class="share-card">
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
@@ -960,7 +980,11 @@ function renderHistory() {
           </table>
         </div>
         ${w.notes ? `<p style="margin-top:12px;font-size:0.8rem;color:var(--muted);font-style:italic;">"${w.notes}"</p>` : ''}
-        <button class="delete-workout" onclick="event.stopPropagation();deleteWorkout(${w.id})">Delete Workout</button>
+        
+        <div style="display:flex; gap:8px; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+          <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
+          <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -978,6 +1002,78 @@ function deleteWorkout(id) {
   updateStats();
   renderHistory();
   toast('Workout deleted');
+}
+
+// ─── SHARE WORKOUT AS IMAGE ───────────────────────────────────────────────────
+function shareWorkout(id) {
+  const w = workouts.find(x => x.id === id);
+  if (!w) return;
+  
+  toast('Generating poster... ⏳');
+  
+  const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+  const node = document.getElementById('share-node');
+  
+  // Build the gorgeous poster HTML inside the hidden node
+  node.innerHTML = `
+    <div class="share-content">
+      <div style="font-family:'Bebas Neue', sans-serif; font-size:3.5rem; letter-spacing:0.08em; color:var(--accent); margin-bottom:5px; line-height:1;">
+        Iron<span style="color:var(--text)">Log</span>
+      </div>
+      <div style="font-family:'DM Mono', monospace; font-size:0.9rem; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; margin-bottom:40px;">
+        ${formatDate(w.date)}
+      </div>
+      
+      <div style="font-family:'Bebas Neue', sans-serif; font-size:2.8rem; letter-spacing:0.05em; color:var(--text); margin-bottom:24px; line-height:1.1;">
+        ${w.name}
+      </div>
+      
+      <div style="display:flex; gap:16px; margin-bottom:40px;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; flex:1; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent);"></div>
+          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:var(--muted); margin-bottom:8px;">TOTAL VOLUME</div>
+          <div style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; color:var(--accent); line-height:1;">${Math.round(vol).toLocaleString()} KG</div>
+        </div>
+        ${w.duration ? `
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; flex:1; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent);"></div>
+          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:var(--muted); margin-bottom:8px;">DURATION</div>
+          <div style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; color:var(--text); line-height:1;">${w.duration} MIN</div>
+        </div>` : ''}
+      </div>
+      
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px;">
+        <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.1em; color:var(--muted); margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;">EXERCISES</div>
+        ${w.exercises.map((e, i) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:${i === w.exercises.length - 1 ? '0' : '14px'}; border-bottom:${i === w.exercises.length - 1 ? 'none' : '1px solid rgba(42,42,42,0.5)'}; padding-bottom:${i === w.exercises.length - 1 ? '0' : '14px'};">
+            <span style="font-size:1.1rem; font-weight:500; color:var(--text);">${e.name}</span>
+            <span style="font-family:'DM Mono', monospace; font-size:0.9rem; color:var(--accent); background:rgba(232,255,71,0.1); padding:4px 10px; border-radius:6px; border:1px solid rgba(232,255,71,0.2);">
+              ${e.sets} × ${e.reps} @ ${e.weight}kg
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  // Use HTML2Canvas to capture it
+  setTimeout(() => {
+    html2canvas(node, {
+      backgroundColor: '#0a0a0a',
+      scale: 2, // High resolution
+      logging: false,
+      useCORS: true
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `ironlog-${w.date.replace(/-/g, '')}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.9);
+      link.click();
+      toast('Poster saved! Ready for Instagram. 📸');
+    }).catch(err => {
+      console.error(err);
+      toast('Failed to generate image.');
+    });
+  }, 100); // Tiny timeout ensures DOM is fully updated before drawing
 }
 
 // ─── PROGRESS ────────────────────────────────────────────────────────────────
