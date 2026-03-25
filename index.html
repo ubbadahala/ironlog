@@ -1032,6 +1032,58 @@ input, select, textarea {
     z-index: 3000; pointer-events: none; animation: confetti-fall 3s linear forwards;
   }
 
+  /* MAGIC WAND OVERLOAD BUTTON */
+  .weight-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .predict-btn {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+    padding: 0;
+  }
+
+  .predict-btn:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.2);
+  }
+
+  /* Indent text so it doesn't overlap the wand */
+  .weight-wrapper input {
+    padding-left: 28px !important;
+  }
+
+  .delta-box {
+    position: absolute;
+    bottom: -18px;
+    left: 4px;
+    font-size: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: bold;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .delta-pos { color: var(--green); }
+  .delta-neg { color: var(--red); opacity: 0.8; }
+  .delta-neutral { color: var(--muted); }
+
+  /* Ensure wrappers have space for the labels below */
+  .exercise-item > div, .exercise-item > input {
+    position: relative;
+    margin-bottom: 12px !important; 
+  }
+
 </style>
 </head>
 <body>
@@ -1513,17 +1565,37 @@ function addExerciseRow(ex = {}) {
   const row = document.createElement('div');
   row.className = 'exercise-item';
   row.id = 'ex-' + id;
+  
+  // Using a Template Literal (backticks) to avoid quote errors
   row.innerHTML = `
     <div class="name-wrapper">
-       <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
+       <input type="text" placeholder="Exercise" value="${ex.name || ''}" 
+              data-field="name" list="exercise-db" autocomplete="off"
+              oninput="updateDelta(${id})">
        <button class="history-peek-btn" onclick="peekHistory(${id})">LOGS</button>
     </div>
-    <input type="number" placeholder="Sets" min="1" value="${ex.sets || ''}" data-field="sets">
-    <input type="number" placeholder="Reps" min="1" value="${ex.reps || ''}" data-field="reps">
-    <input type="number" placeholder="Kg" min="0" step="0.5" value="${ex.weight || ''}" data-field="weight">
+    
+    <div style="position:relative">
+       <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
+    </div>
+    
+    <div style="position:relative">
+       <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}" 
+              oninput="updateDelta(${id})">
+    </div>
+    
+    <div class="weight-wrapper" style="position:relative">
+       <button class="predict-btn" onclick="predictLoad(${id})">🪄</button>
+       <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" 
+              oninput="updateDelta(${id})" 
+              onchange="triggerSmartTimer(this.closest('.exercise-item').querySelector('[data-field=name]').value)">
+    </div>
+    
     <button class="btn btn-icon" onclick="removeExercise(${id})">✕</button>
   `;
+  
   document.getElementById('exercisesList').appendChild(row);
+  if (ex.name) setTimeout(() => updateDelta(id), 50);
 }
 
 function peekHistory(id) {
@@ -1639,6 +1711,152 @@ function triggerConfetti() {
   }
 }
 
+// ─── PREDICT LOAD ────────────────────────────────────────────────────────
+
+function predictLoad(id) {
+  const row = document.getElementById('ex-' + id);
+  if (!row) return;
+
+  const nameInput = row.querySelector('[data-field="name"]');
+  const weightInput = row.querySelector('[data-field="weight"]');
+  const name = nameInput.value.trim();
+
+  if (!name) return toast("Enter exercise name first!");
+
+  // 1. DATA ACQUISITION: Fetch History (Newest to Oldest)
+  const history = workouts
+    .flatMap(w => w.exercises.map(e => ({ ...e, date: w.date })))
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (history.length === 0) return toast("No history found. Set your own baseline!");
+
+  const last = history[0];
+  let suggestion = last.weight;
+  let statusMsg = "";
+  let statusColor = "var(--accent)";
+
+  // 2. STAGNATION LOGIC: Check for "Failed 3x" (Fatigue Detection)
+  const isStagnant = history.length >= 3 && 
+                     history[0].weight === history[1].weight && 
+                     history[1].weight === history[2].weight &&
+                     history[0].reps <= history[1].reps;
+
+  if (isStagnant) {
+    // Deload Triggered: -10% rounded to nearest 0.5kg
+    suggestion = Math.floor((last.weight * 0.9) * 2) / 2; 
+    statusMsg = `⚠️ Stagnation detected. Deloading to ${suggestion}kg.`;
+    statusColor = "#ffb347"; // Warning Orange
+  } 
+  
+  // 3. PERFORMANCE LOGIC: Overload vs Volume Focus
+  else {
+    // We use 8 reps as the "Success Threshold" setpoint
+    const target = 8; 
+    
+    if (last.reps >= target) {
+      // Overload Triggered: +5kg for Legs, +2.5kg for others
+      const isLowerBody = ['legs', 'quads', 'glutes', 'hamstrings', 'squat', 'leg press'].some(m => 
+        name.toLowerCase().includes(m)
+      );
+      const increment = isLowerBody ? 5 : 2.5;
+      
+      suggestion += increment;
+      statusMsg = `🔥 Target hit (${last.reps} reps)! Increasing to ${suggestion}kg.`;
+      statusColor = "var(--green)";
+    } 
+    else {
+      // Volume Focus: Stay at same weight, try to increase reps
+      statusMsg = `Focus on volume. Stay at ${suggestion}kg and aim for 8+ reps.`;
+      statusColor = "var(--muted)";
+    }
+  }
+
+  // 4. ACTUATION: Update the UI and trigger secondary systems
+  weightInput.value = suggestion;
+
+  // Manually trigger the "Smart" side-effects
+  if (typeof triggerSmartTimer === 'function') triggerSmartTimer(name);
+  if (typeof updateDelta === 'function') updateDelta(id);
+
+  // 5. VISUAL FEEDBACK: HMI-style Glow
+  weightInput.animate([
+    { boxShadow: `0 0 20px ${statusColor}`, transform: 'scale(1.05)' },
+    { boxShadow: 'none', transform: 'scale(1)' }
+  ], { duration: 500, easing: 'ease-out' });
+
+  toast(statusMsg);
+}
+
+// ─── LIVE DIFFERENCE ────────────────────────────────────────────────────────
+
+function updateDelta(id) {
+  const row = document.getElementById('ex-' + id);
+  if (!row) return;
+  
+  const name = row.querySelector('[data-field="name"]').value.trim();
+  const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+  const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+
+  if (!name || workouts.length === 0) return;
+
+  // Find the most recent session of THIS exercise
+  const last = workouts
+    .flatMap(w => w.exercises)
+    .find(e => e.name.toLowerCase() === name.toLowerCase());
+
+  if (!last) return;
+
+  const repDelta = reps - last.reps;
+  const weightDelta = weight - last.weight;
+
+  renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, repDelta, 'r');
+  renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weightDelta, 'kg');
+}
+
+function renderDeltaLabel(parent, val, unit) {
+  let el = parent.querySelector('.delta-box');
+  if (!el) {
+    el = document.createElement('span');
+    el.className = 'delta-box';
+    parent.appendChild(el);
+  }
+  
+  if (val === 0) {
+    el.innerHTML = `<span class="delta-neutral">= last</span>`;
+  } else {
+    const cls = val > 0 ? 'delta-pos' : 'delta-neg';
+    const sign = val > 0 ? '+' : '';
+    el.innerHTML = `<span class="${cls}">${sign}${val}${unit}</span>`;
+  }
+}
+
+// ─── ADAPTIVE REST TIMER ────────────────────────────────────────────────────────
+
+const HEAVY_COMPOUNDS = ['bench', 'squat', 'deadlift', 'press', 'row', 'pull up', 'leg press'];
+
+function triggerSmartTimer(exerciseName) {
+  if (!exerciseName) return;
+  
+  const isHeavy = HEAVY_COMPOUNDS.some(c => exerciseName.toLowerCase().includes(c));
+  const seconds = isHeavy ? 180 : 60; 
+  
+  console.log(`Smart Timer Triggered: ${exerciseName} (${isHeavy ? 'Heavy' : 'Light'}) -> ${seconds}s`);
+
+  // SAFETY CHECK: Try different common function names from our previous builds
+  if (typeof startTimer === 'function') {
+    startTimer(seconds);
+  } else if (typeof toggleTimer === 'function') {
+    toggleTimer(true); // Assuming toggleTimer(true) opens it
+    // If your timer has its own duration logic, we might need to set it here
+  } else {
+    console.error("Timer function not found! Check if you named it openTimer or toggleTimer.");
+    return;
+  }
+
+  toast(`Rest: ${seconds}s started`);
+}
+
 // ─── STATS ────────────────────────────────────────────────────────────────────
 function updateStats() {
   document.getElementById('statTotal').textContent = workouts.length;
@@ -1721,6 +1939,7 @@ function renderHistory() {
 
   list.innerHTML = filtered.map(w => {
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+    const density = w.duration ? (vol / w.duration).toFixed(1) : 0;
     const chips = w.exercises.map(e => `<span class="chip">${e.name}</span>`).join('');
     
     // UPDATED: Added the 1RM calculation to the table rows
@@ -1745,7 +1964,8 @@ function renderHistory() {
         <div class="workout-meta">
           ${w.muscle ? `<span class="meta-pill">${w.muscle}</span>` : ''}
           ${w.duration ? `<span class="meta-pill"><strong>${w.duration}</strong> min</span>` : ''}
-          <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> kg</span>
+           <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> kg</span>
+     <span class="meta-pill">⚡ <strong>${density}</strong> kg/min</span>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
