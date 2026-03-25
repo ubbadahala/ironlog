@@ -1132,15 +1132,21 @@ function renderHistory() {
   list.innerHTML = filtered.map(w => {
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
     const chips = w.exercises.map(e => `<span class="chip">${e.name}</span>`).join('');
-    const rows = w.exercises.map(e => `
+    
+    // UPDATED: Added the 1RM calculation to the table rows
+    const rows = w.exercises.map(e => {
+      const oneRM = calculate1RM(e.weight, e.reps);
+      return `
       <tr>
         <td>${e.name}</td>
         <td>${e.sets}</td>
         <td>${e.reps}</td>
         <td>${e.weight} kg</td>
         <td>${Math.round(e.sets * e.reps * e.weight)} kg</td>
+        <td style="color: var(--accent); font-weight: 500;">${Math.round(oneRM)} kg</td>
       </tr>
-    `).join('');
+      `;
+    }).join('');
 
     return `
     <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
@@ -1160,7 +1166,7 @@ function renderHistory() {
         <div class="table-responsive">
           <table class="exercise-table">
             <thead>
-              <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th></tr>
+              <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Est. 1RM</th></tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
@@ -1284,13 +1290,21 @@ function renderPRs() {
     grid.innerHTML = `<div class="empty-state" style="grid-column:span 2"><div class="empty-icon">🏆</div>Log workouts to see your PRs.</div>`;
     return;
   }
-  grid.innerHTML = entries.map(pr => `
+  
+  // UPDATED: Added the Est 1RM badge to the card HTML
+  grid.innerHTML = entries.map(pr => {
+    const oneRM = Math.round(calculate1RM(pr.weight, pr.reps));
+    return `
     <div class="pr-card glass-panel">
       <div class="pr-exercise">${pr.name}</div>
       <div class="pr-weight">${pr.weight} <span style="font-size:1rem;color:var(--text);opacity:0.5;">kg</span></div>
       <div class="pr-detail">${pr.sets}×${pr.reps} · ${formatDate(pr.date)}</div>
+      <div style="margin-top: 12px; display: inline-block; background: rgba(232,255,71,0.1); border: 1px solid rgba(232,255,71,0.2); color: var(--accent); padding: 4px 8px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.05em;">
+        EST 1RM: <strong>${oneRM} KG</strong>
+      </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderChart() {
@@ -1512,6 +1526,13 @@ function updateTimerDisplay() {
   const s = timerSeconds % 60;
   document.getElementById('timerDisplay').textContent = 
     `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// ─── 1RM CALCULATOR ───────────────────────────────────────────────────────────
+function calculate1RM(weight, reps) {
+  if (reps <= 1) return weight;
+  // Epley Formula
+  return weight * (1 + (reps / 30));
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
