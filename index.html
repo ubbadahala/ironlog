@@ -608,7 +608,7 @@
 
   .muscle-tag.active { background: rgba(232,255,71,0.15); border-color: var(--accent); color: var(--accent); }
 
-  /* MOBILE RESPONSIVE FIXES */
+/* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
     header {
       flex-direction: column;
@@ -647,16 +647,20 @@
       appearance: none;
     }
 
-    /* Hide desktop exercise headers */
-    #exerciseHeaders { display: none; }
+    /* Force hide desktop exercise headers despite inline styles */
+    #exerciseHeaders { display: none !important; }
 
-    /* Reformat exercise inputs to stack on mobile */
+    /* Reformat exercise inputs to stack cleanly on mobile */
     .exercise-item { 
       grid-template-columns: 1fr 1fr 1fr 40px; 
       grid-template-rows: auto auto;
       gap: 8px 6px;
     }
     
+    .exercise-item input {
+      min-width: 0; /* Prevents inputs from blowing out the grid */
+    }
+
     .exercise-item input[data-field="name"] { grid-column: 1 / span 3; }
     
     .exercise-item input[data-field="sets"],
