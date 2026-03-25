@@ -313,6 +313,7 @@
     justify-content: center;
     border-radius: 6px;
     font-size: 1rem;
+    cursor: pointer;
   }
 
   .btn-icon:hover { background: rgba(255,68,68,0.1); border-color: var(--red); }
@@ -638,6 +639,84 @@
 
   .share-content { position: relative; z-index: 1; }
 
+  /* REST TIMER WIDGET */
+  .rest-timer-widget {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(150px);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 30px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .rest-timer-widget.active {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .timer-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.2rem;
+    color: var(--accent);
+    font-weight: bold;
+    min-width: 56px;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .timer-btn {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .timer-btn:hover {
+    background: var(--surface2);
+  }
+
+  .quick-timers {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-timer {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-timer:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
     header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -714,6 +793,16 @@
       </div>
     </div>
 
+    <div class="card" style="padding: 16px 20px; margin-bottom: 20px;">
+      <label style="margin-bottom: 8px;">Quick Rest Timer</label>
+      <div class="quick-timers">
+        <button class="btn-timer" onclick="startTimer(60)">60s</button>
+        <button class="btn-timer" onclick="startTimer(90)">90s</button>
+        <button class="btn-timer" onclick="startTimer(120)">120s</button>
+        <button class="btn-timer" onclick="startTimer(180)">180s</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">Log Workout</div>
       <div class="form-row-2">
@@ -756,6 +845,7 @@
         <span></span>
       </div>
       <div class="exercises-list" id="exercisesList"></div>
+      
       <button class="btn-add-exercise" onclick="addExerciseRow()">+ Add Exercise</button>
 
       <div>
@@ -792,6 +882,22 @@
   </div>
 
   <div class="view" id="view-settings">
+    
+    <div class="card">
+      <div class="card-title">Exercise Database</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">Manage the exercises that appear in the autocomplete dropdown.</p>
+      
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="newExerciseInput" placeholder="New exercise name..." style="margin-bottom:0; flex:1;">
+        <button class="btn btn-primary" style="width:auto; padding:10px 16px;" onclick="addCustomExercise()">Add</button>
+      </div>
+      
+      <div id="settingsExerciseList" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); padding: 8px;">
+        </div>
+      
+      <button class="btn btn-ghost" style="width:100%; margin-top:16px; font-size: 0.7rem; padding: 10px;" onclick="restoreDefaultExercises()">↺ Restore Default List</button>
+    </div>
+
     <div class="card">
       <div class="card-title">Data & Backup</div>
       <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">Export your workout logs to keep them safe, or import an existing backup.</p>
@@ -811,11 +917,19 @@
 </div>
 
 <div id="share-container">
-  <div id="share-node" class="share-card">
-    </div>
+  <div id="share-node" class="share-card"></div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<datalist id="exercise-db"></datalist>
+
+<div class="rest-timer-widget" id="restTimerWidget">
+  <button class="timer-btn" onclick="adjustTimer(-15)">-</button>
+  <div class="timer-display" id="timerDisplay">00:00</div>
+  <button class="timer-btn" onclick="adjustTimer(15)">+</button>
+  <button class="timer-btn" onclick="stopTimer()" style="color: var(--red); margin-left: 4px;">✕</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -827,12 +941,25 @@ let exerciseCount = 0;
 let chartInstance = null;
 let chartRange = '4w';
 
+const defaultExercises = [
+  "Barbell Row", "Bench Press (Barbell)", "Bicep Curl (Dumbbell)", "Calf Raise", 
+  "Chest Fly (Cable)", "Deadlift (Barbell)", "Incline Bench Press (Dumbbell)", 
+  "Lat Pulldown (Cable)", "Lateral Raise (Dumbbell)", "Leg Press", 
+  "Overhead Press (Dumbbell)", "Pull-up", "Romanian Deadlift (Barbell)", 
+  "Squat (Barbell)", "Tricep Pushdown (Cable)"
+];
+
+let exercisesDB = JSON.parse(localStorage.getItem('ironlog_exercises')) || [...defaultExercises];
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
   document.getElementById('wDate').value = now.toISOString().split('T')[0];
   document.getElementById('dateDisplay').textContent =
     now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  renderExerciseDB();
+  renderSettingsExerciseList();
   addExerciseRow();
   updateStats();
 });
@@ -847,7 +974,66 @@ function switchTab(tab) {
   if (tab === 'progress') renderProgress();
 }
 
-// ─── EXERCISES ────────────────────────────────────────────────────────────────
+// ─── EXERCISE DATABASE LOGIC ──────────────────────────────────────────────────
+function renderExerciseDB() {
+  const datalist = document.getElementById('exercise-db');
+  datalist.innerHTML = exercisesDB.map(ex => `<option value="${ex}">`).join('');
+}
+
+function renderSettingsExerciseList() {
+  const list = document.getElementById('settingsExerciseList');
+  if (exercisesDB.length === 0) {
+    list.innerHTML = `<div style="padding: 12px; color: var(--muted); font-size: 0.85rem; text-align: center;">No exercises found.</div>`;
+    return;
+  }
+  
+  list.innerHTML = exercisesDB.map((ex, index) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 8px; border-bottom:1px solid rgba(42,42,42,0.5);">
+      <span style="font-size: 0.9rem; color: var(--text);">${ex}</span>
+      <button class="btn-icon" style="width:28px; height:28px; font-size:0.8rem; color: var(--muted);" onclick="removeCustomExercise(${index})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addCustomExercise() {
+  const input = document.getElementById('newExerciseInput');
+  const val = input.value.trim();
+  if (!val) return;
+  
+  // Case-insensitive check to prevent duplicates
+  const exists = exercisesDB.some(ex => ex.toLowerCase() === val.toLowerCase());
+  if (exists) return toast('Exercise already exists!');
+  
+  exercisesDB.push(val);
+  exercisesDB.sort((a, b) => a.localeCompare(b)); // Keep alphabetical
+  saveExercises();
+  
+  input.value = '';
+  toast('Exercise added to database!');
+}
+
+function removeCustomExercise(index) {
+  if (confirm(`Delete "${exercisesDB[index]}" from the database?`)) {
+    exercisesDB.splice(index, 1);
+    saveExercises();
+  }
+}
+
+function restoreDefaultExercises() {
+  if (confirm("Restore the default exercise list? This will replace your custom entries.")) {
+    exercisesDB = [...defaultExercises];
+    saveExercises();
+    toast("Default exercises restored!");
+  }
+}
+
+function saveExercises() {
+  localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
+  renderExerciseDB();
+  renderSettingsExerciseList();
+}
+
+// ─── LOGGING EXERCISES ────────────────────────────────────────────────────────
 function addExerciseRow(ex = {}) {
   exerciseCount++;
   const id = exerciseCount;
@@ -855,7 +1041,7 @@ function addExerciseRow(ex = {}) {
   row.className = 'exercise-item';
   row.id = 'ex-' + id;
   row.innerHTML = `
-    <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name">
+    <input type="text" placeholder="Exercise name" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
     <input type="number" placeholder="Sets" min="1" value="${ex.sets || ''}" data-field="sets">
     <input type="number" placeholder="Reps" min="1" value="${ex.reps || ''}" data-field="reps">
     <input type="number" placeholder="Kg" min="0" step="0.5" value="${ex.weight || ''}" data-field="weight">
@@ -1270,6 +1456,48 @@ function clearAllData() {
     renderProgress();
     toast('All data cleared');
   }
+}
+
+// ─── REST TIMER LOGIC ─────────────────────────────────────────────────────────
+let timerInterval = null;
+let timerSeconds = 0;
+
+function startTimer(seconds) {
+  timerSeconds = seconds;
+  updateTimerDisplay();
+  document.getElementById('restTimerWidget').classList.add('active');
+  
+  if (timerInterval) clearInterval(timerInterval);
+  
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    
+    if (timerSeconds <= 0) {
+      stopTimer();
+      toast('⏰ Rest time is up!');
+      // Triggers haptic feedback on mobile devices
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  document.getElementById('restTimerWidget').classList.remove('active');
+}
+
+function adjustTimer(sec) {
+  timerSeconds += sec;
+  if (timerSeconds < 0) timerSeconds = 0;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timerDisplay').textContent = 
+    `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
