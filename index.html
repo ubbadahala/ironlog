@@ -1334,7 +1334,8 @@ function renderPRs() {
 
 function renderChart() {
   const canvas = document.getElementById('volumeChart');
-  if (!canvas) return;
+  const wrap = document.querySelector('.chart-wrap');
+  if (!canvas || !wrap) return;
 
   const now = new Date();
   let cutoff = new Date(0);
@@ -1345,14 +1346,23 @@ function renderChart() {
     .filter(w => new Date(w.date) >= cutoff)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  if (chartInstance) chartInstance.destroy();
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+
+  // 1. Clean up any existing empty states to prevent duplication
+  const existingEmpty = wrap.querySelector('.empty-state');
+  if (existingEmpty) existingEmpty.remove();
 
   if (!filtered.length) {
+    // 2. Hide canvas and insert empty state cleanly
     canvas.style.display = 'none';
-    canvas.parentElement.innerHTML += `<div class="empty-state" style="padding:30px"><div class="empty-icon">📈</div>No data for this period.</div>`;
+    wrap.insertAdjacentHTML('beforeend', '<div class="empty-state" style="padding:30px"><div class="empty-icon">📈</div>No data for this period.</div>');
     return;
   }
 
+  // 3. Ensure canvas is visible if we have data
   canvas.style.display = 'block';
 
   const labels = filtered.map(w => formatDate(w.date));
