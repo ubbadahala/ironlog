@@ -13,7 +13,10 @@
     --glass-bg: rgba(20, 20, 20, 0.45);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    
+    /* Fallback surface/border used by workout entries */
+    --surface: rgba(20, 20, 20, 0.45);
+    --border: rgba(255, 255, 255, 0.08);
+
     --accent: #e8ff47;
     --accent2: #ff6b35;
     --text: #f0f0f0;
@@ -141,7 +144,7 @@
   /* STAT CARDS */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 28px;
   }
@@ -735,7 +738,7 @@ input, select, textarea {
   @media (max-width: 600px) {
     header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .date-display { text-align: left; }
-    .stats-row { grid-template-columns: 1fr; } 
+    .stats-row { grid-template-columns: 1fr 1fr; } 
     .form-row, .form-row-2 { grid-template-columns: 1fr; } 
     .pr-grid { grid-template-columns: 1fr; }
     .card { padding: 20px; }
@@ -1095,10 +1098,10 @@ input, select, textarea {
   </header>
 
   <div class="tabs glass-panel">
-    <button class="tab active" onclick="switchTab('log')">Log</button>
-    <button class="tab" onclick="switchTab('history')">History</button>
-    <button class="tab" onclick="switchTab('progress')">Progress</button>
-    <button class="tab" onclick="switchTab('settings')">Settings</button>
+    <button class="tab active" onclick="switchTab('log', this)">Log</button>
+    <button class="tab" onclick="switchTab('history', this)">History</button>
+    <button class="tab" onclick="switchTab('progress', this)">Progress</button>
+    <button class="tab" onclick="switchTab('settings', this)">Settings</button>
   </div>
 
   <div class="view active" id="view-log">
@@ -1113,6 +1116,11 @@ input, select, textarea {
         <div class="stat-label">This Week</div>
         <div class="stat-value" id="statWeek">0</div>
         <div class="stat-sub">workouts</div>
+      </div>
+      <div class="stat-card glass-panel">
+        <div class="stat-label">Current Streak</div>
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-sub">days 🔥</div>
       </div>
       <div class="stat-card glass-panel">
         <div class="stat-label">Total Volume</div>
@@ -1199,13 +1207,27 @@ input, select, textarea {
 
       <div class="checkin-grid">
         <div class="glass-input-group">
-          <label>PROTEIN SCOOPS</label>
+          <label>PROTEIN (g)</label>
           <input type="number" id="rProtein" placeholder="0">
         </div>
+        <div class="glass-input-group">
+          <label>BODYWEIGHT (kg)</label>
+          <input type="number" id="rBodyweight" placeholder="0.0" step="0.1">
+        </div>
+      </div>
+
+      <div class="checkin-grid">
         <div class="glass-input-group" style="display: flex; justify-content: space-between; align-items: center;">
           <label style="margin-bottom: 0;">ZINC INTAKE</label>
           <label class="switch">
             <input type="checkbox" id="rZinc">
+            <span class="slider-round"></span>
+          </label>
+        </div>
+        <div class="glass-input-group" style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="margin-bottom: 0;">CREATINE</label>
+          <label class="switch">
+            <input type="checkbox" id="rCreatine">
             <span class="slider-round"></span>
           </label>
         </div>
@@ -1381,11 +1403,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── TABS ────────────────────────────────────────────────────────────────────
-function switchTab(tab) {
+function switchTab(tab, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + tab).classList.add('active');
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   
   if (tab === 'history') renderHistory();
   if (tab === 'progress') {
@@ -1518,8 +1540,14 @@ function renderNutritionInsights() {
   // Calculate Totals
   const totalProtein = recoveryLogs.reduce((sum, r) => sum + (r.protein || 0), 0);
   const zincDays = recoveryLogs.filter(r => r.zinc).length;
+  const creatineDays = recoveryLogs.filter(r => r.creatine).length;
 
-  // Calculate Protein Streak (days with > 0 scoops)
+  // Latest bodyweight
+  const latestBW = [...recoveryLogs]
+    .filter(r => r.bodyweight > 0)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+  // Calculate Protein Streak (days with > 0g protein)
   let proteinStreak = 0;
   const sortedLogs = [...recoveryLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
   for (let log of sortedLogs) {
@@ -1530,21 +1558,31 @@ function renderNutritionInsights() {
   statsContainer.innerHTML = `
     <div class="nutrient-card glass-panel">
       <span class="streak-badge">STRK: ${proteinStreak}d</span>
-      <span class="nutrient-icon">🥛</span>
-      <div class="nutrient-count">${totalProtein}</div>
-      <div class="nutrient-label">Total Protein Scoops</div>
+      <span class="nutrient-icon">🥩</span>
+      <div class="nutrient-count">${totalProtein}g</div>
+      <div class="nutrient-label">Total Protein Logged</div>
     </div>
     <div class="nutrient-card glass-panel">
       <span class="nutrient-icon">💊</span>
       <div class="nutrient-count">${zincDays}</div>
       <div class="nutrient-label">Days Zinc Logged</div>
     </div>
+    <div class="nutrient-card glass-panel">
+      <span class="nutrient-icon">⚡</span>
+      <div class="nutrient-count">${creatineDays}</div>
+      <div class="nutrient-label">Days Creatine</div>
+    </div>
+    <div class="nutrient-card glass-panel">
+      <span class="nutrient-icon">⚖️</span>
+      <div class="nutrient-count">${latestBW ? latestBW.bodyweight + 'kg' : '—'}</div>
+      <div class="nutrient-label">Latest Bodyweight</div>
+    </div>
   `;
 
   // Render 7-day Mini Heatmap
   heatmapContainer.innerHTML = last7Days.map(date => {
     const log = recoveryLogs.find(r => r.date === date);
-    const active = log && (log.zinc || log.protein > 0);
+    const active = log && (log.zinc || log.creatine || log.protein > 0);
     return `
       <div style="
         flex: 1; 
@@ -1635,7 +1673,9 @@ function saveRecovery() {
     date: date,
     sleep: parseFloat(document.getElementById('rSleep').value) || 0,
     protein: parseFloat(document.getElementById('rProtein').value) || 0,
+    bodyweight: parseFloat(document.getElementById('rBodyweight').value) || 0,
     zinc: document.getElementById('rZinc').checked,
+    creatine: document.getElementById('rCreatine').checked,
     soreness: parseInt(document.getElementById('rSoreness').value) || 5
   };
 
@@ -1872,6 +1912,22 @@ function updateStats() {
     return acc + w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
   }, 0);
   document.getElementById('statVolume').textContent = Math.round(totalVol).toLocaleString();
+
+  // Compute current streak (consecutive days with at least 1 workout)
+  const workoutDates = new Set(workouts.map(w => w.date));
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    if (workoutDates.has(ds)) {
+      streak++;
+    } else if (i > 0) { // allow today to have no workout yet
+      break;
+    }
+  }
+  document.getElementById('statStreak').textContent = streak;
 }
 
 // ─── MUSCLE RADAR ─────────────────────────────────────────────────────────────
@@ -2230,7 +2286,7 @@ function exportJSON() {
 
   // Create a bundle of all user data
   const backupData = {
-    version: "2.0", // Tracking version helps if we add more features later
+    version: "3.0", // v3: added bodyweight + creatine fields to recovery entries
     workouts: workouts,
     recovery: recoveryLogs,
     exercises: exercisesDB // Included so your custom exercise list is backed up too
@@ -2245,32 +2301,61 @@ function exportJSON() {
 }
 
 function exportCSV() {
-  if (!workouts.length) return toast('No data to export!');
+  if (!workouts.length && !recoveryLogs.length) return toast('No data to export!');
+
   let csvContent = "data:text/csv;charset=utf-8,";
-  csvContent += "Date,Workout Name,Duration (min),Muscle Group,Exercise,Sets,Reps,Weight (kg),Notes\n";
 
-  workouts.forEach(w => {
-    const date = w.date;
-    const wName = `"${w.name || ''}"`;
-    const dur = w.duration || '';
-    const muscle = w.muscle || '';
-    const notes = `"${(w.notes || '').replace(/"/g, '""')}"`;
+  // ── WORKOUTS SECTION ──
+  if (workouts.length) {
+    csvContent += "WORKOUTS\n";
+    csvContent += "Date,Workout Name,Duration (min),Muscle Group,Exercise,Sets,Reps,Weight (kg),Est. 1RM (kg),Volume (kg),Notes\n";
 
-    w.exercises.forEach(e => {
-      const eName = `"${e.name || ''}"`;
-      const row = [date, wName, dur, muscle, eName, e.sets, e.reps, e.weight, notes].join(",");
-      csvContent += row + "\n";
+    workouts.forEach(w => {
+      const date = w.date;
+      const wName = `"${w.name || ''}"`;
+      const dur = w.duration || '';
+      const muscle = w.muscle || '';
+      const notes = `"${(w.notes || '').replace(/"/g, '""')}"`;
+
+      w.exercises.forEach(e => {
+        const eName = `"${e.name || ''}"`;
+        const oneRM = Math.round(calculate1RM(e.weight, e.reps));
+        const volume = Math.round(e.sets * e.reps * e.weight);
+        const row = [date, wName, dur, muscle, eName, e.sets, e.reps, e.weight, oneRM, volume, notes].join(",");
+        csvContent += row + "\n";
+      });
     });
-  });
+  }
+
+  // ── RECOVERY LOG SECTION ──
+  if (recoveryLogs.length) {
+    csvContent += "\nRECOVERY LOG\n";
+    csvContent += "Date,Sleep (hrs),Protein (g),Bodyweight (kg),Zinc,Creatine,Soreness (1-10)\n";
+
+    [...recoveryLogs]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .forEach(r => {
+        const row = [
+          r.date,
+          r.sleep || 0,
+          r.protein || 0,
+          r.bodyweight || '',
+          r.zinc ? 'Yes' : 'No',
+          r.creatine ? 'Yes' : 'No',
+          r.soreness || ''
+        ].join(",");
+        csvContent += row + "\n";
+      });
+  }
 
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `ironlog_workouts_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute("download", `ironlog_export_${new Date().toISOString().split('T')[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  toast('CSV exported!');
+  toast('Full CSV exported! 📊');
 }
 
 function importJSON() {
