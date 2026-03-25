@@ -917,6 +917,57 @@ input, select, textarea {
     border: 1px solid rgba(68, 255, 136, 0.2);
   }
 
+  /* HEATMAP STYLING */
+  .heatmap-container {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 16px;
+    overflow-x: auto; /* Ensures it's scrollable on small screens */
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr); /* Shows approx 3 months of weeks */
+    gap: 4px;
+    min-width: 300px;
+  }
+
+  .heatmap-column {
+    display: grid;
+    grid-template-rows: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .heatmap-day {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    width: 100%;
+    transition: transform 0.2s ease;
+  }
+
+  .heatmap-day:hover {
+    transform: scale(1.3);
+    z-index: 2;
+  }
+
+  /* Intensity Levels based on --accent color */
+  .level-0 { background: rgba(255, 255, 255, 0.05); }
+  .level-1 { background: rgba(232, 255, 71, 0.2); }
+  .level-2 { background: rgba(232, 255, 71, 0.4); }
+  .level-3 { background: rgba(232, 255, 71, 0.7); }
+  .level-4 { background: rgba(232, 255, 71, 1); box-shadow: 0 0 8px var(--accent); }
+
+  .heatmap-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
 </style>
 </head>
 <body>
@@ -1071,6 +1122,21 @@ input, select, textarea {
   </div>
 
   <div class="view" id="view-progress">
+
+    <div class="card glass-panel">
+      <div class="card-title">Training Consistency</div>
+      <p style="font-size: 0.7rem; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">Intensity based on total daily volume (Last 90 Days)</p>
+      
+      <div class="heatmap-container">
+        <div class="heatmap-grid" id="volumeHeatmap">
+          </div>
+        <div class="heatmap-labels">
+          <span>90 Days Ago</span>
+          <span>Today</span>
+        </div>
+      </div>
+    </div>
+
     <div class="card glass-panel">
       <div class="card-title">Nutritional Consistency</div>
       <div class="nutrition-stats-grid" id="nutritionStats">
@@ -1200,8 +1266,9 @@ function switchTab(tab) {
   
   if (tab === 'history') renderHistory();
   if (tab === 'progress') {
-    renderProgress(); 
-    renderNutritionInsights(); // Add this line
+     renderProgress(); 
+     renderNutritionInsights();
+  renderHeatmap();
   }
 }
 
@@ -1261,6 +1328,53 @@ function saveExercises() {
   localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
   renderExerciseDB();
   renderSettingsExerciseList();
+}
+
+// ─── RENDER HEATMAP ──────────────────────────────────────────────────
+
+function renderHeatmap() {
+  const container = document.getElementById('volumeHeatmap');
+  if (!container) return;
+
+  const now = new Date();
+  const daysToShow = 91; // 13 weeks
+  const heatmapData = {};
+
+  // 1. Calculate daily volumes for intensity scaling
+  let maxVolume = 0;
+  workouts.forEach(w => {
+    const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+    heatmapData[w.date] = (heatmapData[w.date] || 0) + vol;
+    if (vol > maxVolume) maxVolume = vol;
+  });
+
+  // 2. Build the grid (13 columns/weeks)
+  let html = '';
+  for (let w = 0; w < 13; w++) {
+    html += '<div class="heatmap-column">';
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(now);
+      // Calculate date based on offset from "today"
+      const dayOffset = (12 - w) * 7 + (6 - d);
+      date.setDate(now.getDate() - dayOffset);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dailyVol = heatmapData[dateStr] || 0;
+      let level = 0;
+      
+      if (dailyVol > 0) {
+        const ratio = dailyVol / maxVolume;
+        if (ratio < 0.25) level = 1;
+        else if (ratio < 0.5) level = 2;
+        else if (ratio < 0.75) level = 3;
+        else level = 4;
+      }
+
+      html += `<div class="heatmap-day level-${level}" title="${formatDate(dateStr)}: ${Math.round(dailyVol)}kg"></div>`;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
 }
 
 // ─── RENDER NUTRITION ──────────────────────────────────────────────────
