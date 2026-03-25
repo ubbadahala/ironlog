@@ -166,7 +166,7 @@
     margin-top: 4px;
   }
 
-  /* LOG WORKOUT FORM */
+  /* CARDS */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -260,6 +260,7 @@
 
   .exercise-item input { margin-bottom: 0; }
 
+  /* BUTTONS */
   .btn {
     padding: 10px 20px;
     border: none;
@@ -286,11 +287,19 @@
 
   .btn-ghost {
     background: transparent;
-    color: var(--muted);
+    color: var(--text);
     border: 1px solid var(--border);
   }
 
-  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: rgba(255,68,68,0.05);
+    color: var(--red);
+    border: 1px solid rgba(255,68,68,0.3);
+  }
+
+  .btn-danger:hover { background: rgba(255,68,68,0.15); border-color: var(--red); }
 
   .btn-icon {
     background: transparent;
@@ -585,30 +594,7 @@
 
   canvas { display: block; max-height: 220px; }
 
-  .muscle-filter {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-
-  .muscle-tag {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-  }
-
-  .muscle-tag.active { background: rgba(232,255,71,0.15); border-color: var(--accent); color: var(--accent); }
-
-/* MOBILE RESPONSIVE FIXES */
+  /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
     header {
       flex-direction: column;
@@ -689,6 +675,7 @@
     <button class="tab active" onclick="switchTab('log')">Log</button>
     <button class="tab" onclick="switchTab('history')">History</button>
     <button class="tab" onclick="switchTab('progress')">Progress</button>
+    <button class="tab" onclick="switchTab('settings')">Settings</button>
   </div>
 
   <div class="view active" id="view-log">
@@ -788,6 +775,24 @@
       <div class="chart-wrap">
         <canvas id="volumeChart"></canvas>
       </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-settings">
+    <div class="card">
+      <div class="card-title">Data & Backup</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">Export your workout logs to keep them safe, or import an existing backup.</p>
+      
+      <button class="btn btn-ghost" style="width:100%; margin-bottom:12px;" onclick="exportJSON()">⬇️ Export JSON Backup</button>
+      <button class="btn btn-ghost" style="width:100%; margin-bottom:24px;" onclick="exportCSV()">📊 Export as CSV Data</button>
+
+      <label>Restore from JSON Backup</label>
+      <input type="file" id="importFile" accept=".json" style="padding: 8px;">
+      <button class="btn btn-ghost" style="width:100%; margin-bottom:32px;" onclick="importJSON()">⬆️ Import Backup</button>
+
+      <div class="card-title" style="color:var(--red); border-color:var(--border);">Danger Zone</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">This will permanently delete all your workout data. Be sure to export a backup first.</p>
+      <button class="btn btn-danger" style="width:100%;" onclick="clearAllData()">🗑️ Delete All Data</button>
     </div>
   </div>
 </div>
@@ -1089,6 +1094,86 @@ function setChartRange(range, btn) {
   const wrap = document.querySelector('.chart-wrap');
   wrap.innerHTML = '<canvas id="volumeChart"></canvas>';
   renderChart();
+}
+
+// ─── BACKUP & DATA FUNCTIONS ──────────────────────────────────────────────────
+function exportJSON() {
+  if (!workouts.length) return toast('No data to export!');
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(workouts));
+  const dlAnchorElem = document.createElement('a');
+  dlAnchorElem.setAttribute("href", dataStr);
+  dlAnchorElem.setAttribute("download", `ironlog_backup_${new Date().toISOString().split('T')[0]}.json`);
+  dlAnchorElem.click();
+  toast('Backup exported!');
+}
+
+function exportCSV() {
+  if (!workouts.length) return toast('No data to export!');
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "Date,Workout Name,Duration (min),Muscle Group,Exercise,Sets,Reps,Weight (kg),Notes\n";
+
+  workouts.forEach(w => {
+    const date = w.date;
+    const wName = `"${w.name || ''}"`;
+    const dur = w.duration || '';
+    const muscle = w.muscle || '';
+    const notes = `"${(w.notes || '').replace(/"/g, '""')}"`;
+
+    w.exercises.forEach(e => {
+      const eName = `"${e.name || ''}"`;
+      const row = [date, wName, dur, muscle, eName, e.sets, e.reps, e.weight, notes].join(",");
+      csvContent += row + "\n";
+    });
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `ironlog_workouts_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast('CSV exported!');
+}
+
+function importJSON() {
+  const fileInput = document.getElementById('importFile');
+  const file = fileInput.files[0];
+  if (!file) return toast('Please select a JSON file first');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (Array.isArray(importedData)) {
+        if (confirm('This will replace your current data with the imported backup. Continue?')) {
+          workouts = importedData;
+          save();
+          updateStats();
+          renderHistory();
+          renderProgress();
+          toast('Data imported successfully!');
+          fileInput.value = ''; // Reset file input
+        }
+      } else {
+        toast('Invalid backup file format');
+      }
+    } catch (err) {
+      toast('Error reading file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (confirm('Are you absolutely sure? This cannot be undone unless you have a backup.')) {
+    workouts = [];
+    save();
+    updateStats();
+    renderHistory();
+    renderProgress();
+    toast('All data cleared');
+  }
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
