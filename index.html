@@ -639,59 +639,92 @@
 
   .share-content { position: relative; z-index: 1; }
 
-  /* REST TIMER WIDGET */
+  /* FULL PAGE REST TIMER WIDGET */
   .rest-timer-widget {
     position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%) translateY(150px);
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 30px;
-    padding: 8px 16px;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(8px);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    z-index: 1000;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    justify-content: center;
+    z-index: 2000;
     opacity: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease;
   }
 
   .rest-timer-widget.active {
-    transform: translateX(-50%) translateY(0);
     opacity: 1;
     pointer-events: auto;
   }
 
-  .timer-display {
-    font-family: 'DM Mono', monospace;
-    font-size: 1.2rem;
-    color: var(--accent);
-    font-weight: bold;
-    min-width: 56px;
-    text-align: center;
-    letter-spacing: 0.05em;
+  .rest-timer-widget.blinking {
+    animation: blinkTimer 1s infinite alternate;
   }
 
-  .timer-btn {
-    background: transparent;
-    border: none;
+  @keyframes blinkTimer {
+    0% { background: rgba(10, 10, 10, 0.95); }
+    100% { background: rgba(232, 255, 71, 0.25); }
+  }
+
+  .timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 8rem;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 24px;
+    text-shadow: 0 0 20px rgba(232,255,71,0.2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-controls {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .timer-btn-adjust {
+    background: var(--surface);
+    border: 1px solid var(--border);
     color: var(--text);
     cursor: pointer;
+    font-family: 'DM Mono', monospace;
     font-size: 1.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    transition: background 0.2s;
+    transition: all 0.2s;
   }
 
-  .timer-btn:hover {
-    background: var(--surface2);
+  .timer-btn-adjust:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232, 255, 71, 0.05);
+  }
+
+  .timer-btn-close {
+    background: var(--red);
+    color: #000;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 30px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255, 68, 68, 0.4);
+    transition: transform 0.1s;
+  }
+
+  .timer-btn-close:active {
+    transform: scale(0.95);
   }
 
   .quick-timers {
@@ -756,6 +789,8 @@
     .exercise-item input[data-field="reps"],
     .exercise-item input[data-field="weight"] { grid-row: 2; }
     .exercise-item .btn-icon { grid-column: 4; grid-row: 1 / span 2; height: 100%; }
+    
+    .timer-display { font-size: 6rem; }
   }
 </style>
 </head>
@@ -925,10 +960,12 @@
 <datalist id="exercise-db"></datalist>
 
 <div class="rest-timer-widget" id="restTimerWidget">
-  <button class="timer-btn" onclick="adjustTimer(-15)">-</button>
   <div class="timer-display" id="timerDisplay">00:00</div>
-  <button class="timer-btn" onclick="adjustTimer(15)">+</button>
-  <button class="timer-btn" onclick="stopTimer()" style="color: var(--red); margin-left: 4px;">✕</button>
+  <div class="timer-controls">
+    <button class="timer-btn-adjust" onclick="adjustTimer(-15)">-15</button>
+    <button class="timer-btn-adjust" onclick="adjustTimer(15)">+15</button>
+  </div>
+  <button class="timer-btn-close" onclick="stopTimer()">✕ Close Timer</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -1458,39 +1495,53 @@ function clearAllData() {
   }
 }
 
-// ─── REST TIMER LOGIC ─────────────────────────────────────────────────────────
+// ─── FULL PAGE REST TIMER LOGIC ───────────────────────────────────────────────
 let timerInterval = null;
 let timerSeconds = 0;
 
 function startTimer(seconds) {
   timerSeconds = seconds;
   updateTimerDisplay();
-  document.getElementById('restTimerWidget').classList.add('active');
+  
+  const widget = document.getElementById('restTimerWidget');
+  widget.classList.add('active');
+  widget.classList.remove('blinking'); // Reset blink state if restarting
   
   if (timerInterval) clearInterval(timerInterval);
   
   timerInterval = setInterval(() => {
-    timerSeconds--;
-    updateTimerDisplay();
+    if (timerSeconds > 0) {
+      timerSeconds--;
+      updateTimerDisplay();
+    }
     
     if (timerSeconds <= 0) {
-      stopTimer();
+      clearInterval(timerInterval);
+      widget.classList.add('blinking');
       toast('⏰ Rest time is up!');
-      // Triggers haptic feedback on mobile devices
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
     }
   }, 1000);
 }
 
 function stopTimer() {
   if (timerInterval) clearInterval(timerInterval);
-  document.getElementById('restTimerWidget').classList.remove('active');
+  const widget = document.getElementById('restTimerWidget');
+  widget.classList.remove('active');
+  widget.classList.remove('blinking');
 }
 
 function adjustTimer(sec) {
   timerSeconds += sec;
   if (timerSeconds < 0) timerSeconds = 0;
   updateTimerDisplay();
+  
+  // If timer was at 0 (blinking) and we added time, stop blinking and restart interval
+  const widget = document.getElementById('restTimerWidget');
+  if (timerSeconds > 0 && widget.classList.contains('blinking')) {
+    widget.classList.remove('blinking');
+    startTimer(timerSeconds); 
+  }
 }
 
 function updateTimerDisplay() {
