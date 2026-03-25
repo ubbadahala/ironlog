@@ -241,11 +241,26 @@ input, select, textarea {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
   }
 
-  /* Specific fix for stubborn date pickers */
+/* Specific fix for stubborn date pickers on iOS Safari */
   input[type="date"] {
-    padding: 12px 10px; /* Slightly reduced padding to make room for the calendar icon */
-    font-family: 'DM Mono', monospace; /* Monospace keeps the date text narrower */
-    letter-spacing: -0.5px;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: block;
+    overflow: hidden; /* Clips the internal native calendar UI if it tries to stretch */
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+    font-size: 16px !important; /* Prevents the iOS auto-zoom bug that breaks grid widths */
+    padding: 12px 10px;
+  }
+  
+  /* Safari sometimes adds a weird clear button inside the shadow DOM that adds invisible width */
+  input[type="date"]::-webkit-clear-button,
+  input[type="date"]::-webkit-inner-spin-button {
+    display: none;
   }
 
   input:focus, select:focus, textarea:focus {
