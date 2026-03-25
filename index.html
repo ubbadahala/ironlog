@@ -385,27 +385,26 @@ input, select, textarea {
 
   /* WORKOUT HISTORY */
   .workout-entry {
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
+    background: var(--surface);
+    /* Base border for top, right, and bottom */
+    border: 1px solid var(--border); 
+    /* The "Orange Bar" implemented as a native left border */
+    border-left: 4px solid var(--accent2); 
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.2s;
     position: relative;
+    /* Remove overflow: hidden if it's interfering, 
+       but keeping it is fine for internal content */
+    overflow: hidden; 
   }
 
   .workout-entry:hover {
     border-color: rgba(255,255,255,0.2);
     transform: translateY(-2px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  }
-
-  .workout-entry::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, var(--accent2), transparent);
-    border-radius: 4px 0 0 4px;
   }
 
   .workout-entry-header {
