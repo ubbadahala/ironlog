@@ -287,7 +287,7 @@ input, select, textarea {
 
   .exercise-item {
     display: grid;
-    grid-template-columns: 1fr 100px 70px 70px 80px 36px;
+    grid-template-columns: 1fr 100px 70px 70px 80px 36px 36px;
     gap: 8px;
     align-items: center;
     margin-bottom: 10px;
@@ -364,6 +364,13 @@ input, select, textarea {
   }
 
   .btn-icon:hover { background: rgba(255, 68, 68, 0.15); border-color: var(--red); transform: scale(1.05); }
+
+  .btn-confirm {
+    background: rgba(68, 255, 136, 0.06);
+    color: var(--green);
+    border: 1px solid rgba(68, 255, 136, 0.2);
+  }
+  .btn-confirm:hover { background: rgba(68, 255, 136, 0.15); border-color: var(--green); transform: scale(1.05); }
 
   .btn-add-exercise {
     background: rgba(255,255,255,0.02);
@@ -735,6 +742,11 @@ input, select, textarea {
   }
   .share-content { position: relative; z-index: 1; }
 
+  /* ── SPECIFIC GRID FOR EDIT MODAL (DESKTOP) ── */
+  #editExercisesList .exercise-item {
+    grid-template-columns: 1fr 100px 70px 70px 80px 36px;
+  }
+
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 600px) {
     header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -746,23 +758,35 @@ input, select, textarea {
 
     .form-row > div, .form-row-2 > div { min-width: 0; width: 100%; }
     
-    #exerciseHeaders { display: none !important; }
+    #exerciseHeaders, #editExerciseHeaders { display: none !important; }
+    
+    /* Unified Mobile Grid for Exercises */
     .exercise-item { 
-      grid-template-columns: 1fr 1fr 1fr 40px; 
+      grid-template-columns: 1fr 1fr 1fr 38px !important; 
       grid-template-rows: auto auto auto;
-      gap: 8px;
+      gap: 0 8px;
     }
-    .exercise-item .name-wrapper {
-      grid-column: 1 / span 3;
+    
+    /* Map inputs to their mobile rows/columns */
+    .exercise-item > *:nth-child(1) { grid-column: 1 / span 3; grid-row: 1; } /* Name */
+    .exercise-item > *:nth-child(2) { grid-column: 1 / span 3; grid-row: 2; } /* Muscle */
+    .exercise-item > *:nth-child(3) { grid-column: 1; grid-row: 3; } /* Sets */
+    .exercise-item > *:nth-child(4) { grid-column: 2; grid-row: 3; } /* Reps */
+    .exercise-item > *:nth-child(5) { grid-column: 3; grid-row: 3; } /* Weight */
+
+    /* Main View: Stacked buttons on the right */
+    #exercisesList .exercise-item > .btn-confirm { 
+      grid-column: 4; grid-row: 1; height: 42px; width: 100%; margin: 0; align-self: start;
     }
-    .exercise-item .muscle-select-wrap {
-      grid-column: 1 / span 3;
-      grid-row: 2;
+    #exercisesList .exercise-item > .btn-icon:last-child { 
+      grid-column: 4; grid-row: 2; height: 42px; width: 100%; margin: 0; align-self: start;
     }
-    .exercise-item input[data-field="sets"],
-    .exercise-item input[data-field="reps"],
-    .exercise-item input[data-field="weight"] { grid-row: 3; }
-    .exercise-item .btn-icon { grid-column: 4; grid-row: 1 / span 2; height: 100%; }
+
+    /* Edit View: Tall delete button spanning both top rows */
+    #editExercisesList .exercise-item > .btn-icon {
+      grid-column: 4; grid-row: 1 / span 2; height: calc(100% - 12px); width: 100%; margin: 0;
+    }
+
     .exercise-item input { min-width: 0; margin-bottom: 0; }
     
     .timer-display { font-size: 6.5rem; }
@@ -1034,6 +1058,52 @@ input, select, textarea {
     position: fixed; width: 10px; height: 10px; background: var(--accent);
     z-index: 3000; pointer-events: none; animation: confetti-fall 3s linear forwards;
   }
+
+  /* ── PEEK POPOVER ── */
+  .peek-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 200;
+    background: rgba(14,14,14,0.97);
+    border: 1px solid rgba(232,255,71,0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    min-width: 260px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: fadeIn 0.15s ease;
+  }
+  .peek-popover-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .peek-popover table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+  }
+  .peek-popover td {
+    padding: 5px 6px 5px 0;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .peek-popover td:first-child { color: var(--muted); white-space: nowrap; }
+  .peek-popover tr:last-child td { border-bottom: none; }
+  .peek-popover-empty { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); }
+
+  /* ── UNTAGGED EXERCISE HIGHLIGHT ── */
+  .exercise-item.no-muscle .muscle-select-wrap select {
+    border-color: rgba(255,200,50,0.35) !important;
+    color: rgba(255,200,50,0.8) !important;
+  }
+
+  /* ── BODYWEIGHT CHART ── */
+  .bw-chart-wrap { border-radius: 16px; padding: 20px; position: relative; }
 
   /* ── WORKOUT SESSION TIMER BAR ── */
   .session-bar {
@@ -1412,8 +1482,11 @@ input, select, textarea {
           <div class="session-label">Session in progress</div>
           <div class="session-clock" id="sessionClock">00:00</div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);text-align:right;">
-          Started at<br><span id="sessionStartLabel" style="color:var(--text);">—</span>
+        <div style="text-align:right;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">
+            Started at<br><span id="sessionStartLabel" style="color:var(--text);">—</span>
+          </div>
+          <button onclick="cancelSession()" style="background:none;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);cursor:pointer;margin-top:6px;letter-spacing:0.05em;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕ cancel</button>
         </div>
       </div>
 
@@ -1427,12 +1500,13 @@ input, select, textarea {
       </div>
 
       <label style="margin-top: 8px;">Exercises</label>
-      <div id="exerciseHeaders" style="display:grid; grid-template-columns:1fr 100px 70px 70px 80px 36px; gap:8px; margin-bottom:6px; padding:0 2px;">
+      <div id="exerciseHeaders" style="display:grid; grid-template-columns:1fr 100px 70px 70px 80px 36px 36px; gap:8px; margin-bottom:6px; padding:0 2px;">
         <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
         <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
         <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
         <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
         <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
+        <span></span>
         <span></span>
       </div>
       <div class="exercises-list" id="exercisesList"></div>
@@ -1515,7 +1589,7 @@ input, select, textarea {
     </div>
     <div id="historyList"></div>
 
-    <div class="card glass-panel" style="margin-top:28px;">
+    <div class="card glass-panel" style="margin-top:28px;" id="recoveryHistoryCard">
       <div class="card-title" style="color:var(--green);">Recovery Log History</div>
       <div id="recoveryHistoryList"></div>
     </div>
@@ -1557,6 +1631,13 @@ input, select, textarea {
       <div class="card-title">Muscle Group Distribution</div>
       <div class="radar-container">
         <canvas id="muscleRadarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card glass-panel chart-container-glass">
+      <div class="card-title">Bodyweight Trend</div>
+      <div class="bw-chart-wrap glass-panel" style="padding:16px;">
+        <canvas id="bwChart" style="max-height:180px;"></canvas>
       </div>
     </div>
 
@@ -1676,13 +1757,13 @@ input, select, textarea {
     </div>
     <label style="margin-top:4px;">Exercises</label>
     <div id="editExerciseHeaders" style="display:grid;grid-template-columns:1fr 100px 70px 70px 80px 36px;gap:8px;margin-bottom:6px;padding:0 2px;">
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
-      <span></span>
-    </div>
+      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
+      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
+      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
+      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
+      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
+      			<span></span>
+    	 </div>
     <div class="exercises-list" id="editExercisesList"></div>
     <button class="btn-add-exercise" onclick="addEditExerciseRow()">+ Add Exercise</button>
     <div>
@@ -1821,10 +1902,10 @@ function switchTab(tab, btn) {
   
   if (tab === 'history') { renderHistory(); renderRecoveryHistory(); }
   if (tab === 'progress') {
-     renderProgress(); 
-     renderNutritionInsights();
-  renderHeatmap();
-  renderRadarChart();
+    renderProgress();
+    renderNutritionInsights();
+    renderHeatmap();
+    renderRadarChart();
   }
 }
 
@@ -2050,12 +2131,13 @@ function addExerciseRow(ex = {}) {
     <div class="name-wrapper">
        <input type="text" placeholder="Exercise" value="${ex.name || ''}" 
               data-field="name" list="exercise-db" autocomplete="off"
-              oninput="updateDelta(${id}); autoFillExerciseMuscle(${id}, this.value)">
+              oninput="updateDelta(${id}); autoFillExerciseMuscle(${id}, this.value); checkMuscleTag(${id})">
        <button class="history-peek-btn" onclick="peekHistory(${id})">LOGS</button>
     </div>
 
     <div class="muscle-select-wrap">
-      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;">
+      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;"
+        onchange="checkMuscleTag(${id}); autoFillExerciseMuscle(${id}, document.querySelector('#ex-${id} [data-field=name]').value)">
         ${muscleOptions}
       </select>
     </div>
@@ -2072,15 +2154,15 @@ function addExerciseRow(ex = {}) {
     <div class="weight-wrapper" style="position:relative">
        <button class="predict-btn" onclick="predictLoad(${id})">🪄</button>
        <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" 
-              oninput="updateDelta(${id})" 
-              onchange="triggerSmartTimer(this.closest('.exercise-item').querySelector('[data-field=name]').value)">
+              oninput="updateDelta(${id})">
     </div>
 
-    <button class="btn btn-icon" onclick="removeExercise(${id})">✕</button>
+    <button class="btn-icon btn-confirm" onclick="logSet(${id})" title="Log set & start rest timer">✓</button>
+    <button class="btn-icon" onclick="removeExercise(${id})" title="Remove exercise">✕</button>
   `;
 
   document.getElementById('exercisesList').appendChild(row);
-  if (ex.name) setTimeout(() => updateDelta(id), 50);
+  if (ex.name) setTimeout(() => { updateDelta(id); checkMuscleTag(id); }, 50);
 }
 
 function autoFillExerciseMuscle(id, value) {
@@ -2091,20 +2173,82 @@ function autoFillExerciseMuscle(id, value) {
   const row = document.getElementById('ex-' + id);
   if (!row) return;
   const sel = row.querySelector('[data-field="muscle"]');
-  if (sel && !sel.value) sel.value = match.muscle;
+  if (sel && !sel.value) { sel.value = match.muscle; checkMuscleTag(id); }
+}
+
+function checkMuscleTag(id) {
+  const row = document.getElementById('ex-' + id);
+  if (!row) return;
+  const name = row.querySelector('[data-field="name"]').value.trim();
+  const muscle = row.querySelector('[data-field="muscle"]')?.value || '';
+  if (name && !muscle) row.classList.add('no-muscle');
+  else row.classList.remove('no-muscle');
+}
+
+// Called when the ✓ button is clicked — triggers rest timer then removes the row
+function logSet(id) {
+  const row = document.getElementById('ex-' + id);
+  if (!row) return;
+  const name = row.querySelector('[data-field="name"]').value.trim();
+  const muscle = row.querySelector('[data-field="muscle"]')?.value || '';
+  if (name) triggerSmartTimer(name, muscle);
+}
+
+// Cancel a running session without saving
+function cancelSession() {
+  if (!confirm('Cancel this session? Nothing will be saved.')) return;
+  clearInterval(sessionClockInterval);
+  sessionClockInterval = null;
+  sessionStartTime = null;
+  document.getElementById('sessionBar').classList.remove('active');
+  document.getElementById('sessionClock').textContent = '00:00';
+  const btn = document.getElementById('sessionToggleBtn');
+  btn.textContent = '▶ Start Session';
+  btn.classList.remove('running');
+  toast('Session cancelled');
 }
 
 function peekHistory(id) {
-  const name = document.querySelector(`#ex-${id} [data-field="name"]`).value.trim();
+  // Close any open popovers first
+  document.querySelectorAll('.peek-popover').forEach(p => p.remove());
+
+  const nameInput = document.querySelector(`#ex-${id} [data-field="name"]`);
+  const name = nameInput?.value.trim();
   if (!name) return toast("Enter an exercise name first");
-  
-  const history = workouts.flatMap(w => w.exercises
-    .filter(e => e.name.toLowerCase() === name.toLowerCase())
-    .map(e => `${formatDate(w.date)}: ${e.sets}x${e.reps} @ ${e.weight}kg`))
-    .slice(0, 3);
-    
-  if (history.length === 0) return toast("No history found for this exercise");
-  alert(`Last 3 sessions for ${name}:\n\n${history.join('\n')}`);
+
+  const history = workouts
+    .filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()))
+    .slice(0, 5)
+    .map(w => {
+      const best = w.exercises
+        .filter(e => e.name.toLowerCase() === name.toLowerCase())
+        .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+      return { date: w.date, sets: best.sets, reps: best.reps, weight: best.weight };
+    });
+
+  const popover = document.createElement('div');
+  popover.className = 'peek-popover';
+
+  if (!history.length) {
+    popover.innerHTML = `<div class="peek-popover-title">${name}</div><div class="peek-popover-empty">No history yet</div>`;
+  } else {
+    popover.innerHTML = `
+      <div class="peek-popover-title">Last ${history.length} · ${name}</div>
+      <table>
+        ${history.map(h => `<tr>
+          <td>${formatDate(h.date)}</td>
+          <td>${h.sets}×${h.reps} @ <strong style="color:var(--accent)">${h.weight}kg</strong></td>
+        </tr>`).join('')}
+      </table>`;
+  }
+
+  // Close on outside click
+  const closeHandler = (e) => { if (!popover.contains(e.target)) { popover.remove(); document.removeEventListener('click', closeHandler, true); } };
+  setTimeout(() => document.addEventListener('click', closeHandler, true), 0);
+
+  const wrapper = document.getElementById('ex-' + id).querySelector('.name-wrapper');
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(popover);
 }
 
 function removeExercise(id) {
@@ -2171,6 +2315,9 @@ function startSession() {
   if (!name) return toast('Enter a workout name before starting!');
 
   sessionStartTime = new Date();
+  // Always stamp date to the actual start date (handles cross-midnight sessions)
+  document.getElementById('wDate').value = sessionStartTime.toISOString().split('T')[0];
+
   document.getElementById('sessionBar').classList.add('active');
   document.getElementById('sessionStartLabel').textContent =
     sessionStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2184,6 +2331,10 @@ function startSession() {
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
     document.getElementById('sessionClock').textContent = `${m}:${s}`;
+    // Keep date field current if session crosses midnight
+    const nowDate = new Date().toISOString().split('T')[0];
+    const dateField = document.getElementById('wDate');
+    if (dateField.value !== nowDate) dateField.value = nowDate;
   }, 1000);
 }
 
@@ -2398,10 +2549,11 @@ function predictLoad(id) {
     const target = 8; 
     
     if (last.reps >= target) {
-      // Overload Triggered: +5kg for Legs, +2.5kg for others
-      const isLowerBody = ['legs', 'quads', 'glutes', 'hamstrings', 'squat', 'leg press'].some(m => 
-        name.toLowerCase().includes(m)
-      );
+      // Overload: +5kg for Legs (by muscle tag or name keyword), +2.5kg for everything else
+      const isLowerBody = last.muscle === 'Legs' ||
+        ['legs', 'quads', 'glutes', 'hamstrings', 'squat', 'leg press', 'calf'].some(m =>
+          name.toLowerCase().includes(m)
+        );
       const increment = isLowerBody ? 5 : 2.5;
       
       suggestion += increment;
@@ -2419,7 +2571,6 @@ function predictLoad(id) {
   weightInput.value = suggestion;
 
   // Manually trigger the "Smart" side-effects
-  if (typeof triggerSmartTimer === 'function') triggerSmartTimer(name);
   if (typeof updateDelta === 'function') updateDelta(id);
 
   // 5. VISUAL FEEDBACK: HMI-style Glow
@@ -2480,25 +2631,12 @@ function renderDeltaLabel(parent, val, unit) {
 
 const HEAVY_COMPOUNDS = ['bench', 'squat', 'deadlift', 'press', 'row', 'pull up', 'leg press'];
 
-function triggerSmartTimer(exerciseName) {
+function triggerSmartTimer(exerciseName, exerciseMuscle) {
   if (!exerciseName) return;
-  
-  const isHeavy = HEAVY_COMPOUNDS.some(c => exerciseName.toLowerCase().includes(c));
-  const seconds = isHeavy ? 180 : 60; 
-  
-  console.log(`Smart Timer Triggered: ${exerciseName} (${isHeavy ? 'Heavy' : 'Light'}) -> ${seconds}s`);
-
-  // SAFETY CHECK: Try different common function names from our previous builds
-  if (typeof startTimer === 'function') {
-    startTimer(seconds);
-  } else if (typeof toggleTimer === 'function') {
-    toggleTimer(true); // Assuming toggleTimer(true) opens it
-    // If your timer has its own duration logic, we might need to set it here
-  } else {
-    console.error("Timer function not found! Check if you named it openTimer or toggleTimer.");
-    return;
-  }
-
+  const isLeg = (exerciseMuscle || '').toLowerCase() === 'legs';
+  const isHeavy = isLeg || HEAVY_COMPOUNDS.some(c => exerciseName.toLowerCase().includes(c));
+  const seconds = isHeavy ? 180 : 60;
+  startTimer(seconds);
   toast(`Rest: ${seconds}s started`);
 }
 
@@ -2639,7 +2777,7 @@ function addEditExerciseRow(ex = {}) {
     <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
     <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}">
     <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5">
-    <button class="btn btn-icon" onclick="document.getElementById('editex-${id}').remove()">✕</button>
+    <button class="btn-icon" onclick="document.getElementById('editex-${id}').remove()" title="Remove">✕</button>
   `;
   document.getElementById('editExercisesList').appendChild(row);
 }
@@ -2733,8 +2871,8 @@ function renderHistory() {
   const list = document.getElementById('historyList');
   const filtered = workouts.filter(w =>
     w.name.toLowerCase().includes(q) ||
-    w.muscle?.toLowerCase().includes(q) ||
-    w.exercises.some(e => e.name.toLowerCase().includes(q))
+    w.exercises.some(e => e.name.toLowerCase().includes(q)) ||
+    w.exercises.some(e => (e.muscle || '').toLowerCase().includes(q))
   );
 
   if (!filtered.length) {
@@ -2805,13 +2943,15 @@ function toggleEntry(id) {
 }
 
 function renderRecoveryHistory() {
+  const card = document.getElementById('recoveryHistoryCard');
   const list = document.getElementById('recoveryHistoryList');
   if (!list) return;
   const sorted = [...recoveryLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
   if (!sorted.length) {
-    list.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon">🔋</div>No recovery logs yet.</div>`;
+    if (card) card.style.display = 'none';
     return;
   }
+  if (card) card.style.display = '';
   list.innerHTML = sorted.map(r => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
       <div>
@@ -2909,10 +3049,84 @@ function shareWorkout(id) {
   }, 100);
 }
 
-// ─── PROGRESS CHART & PRs (WITH BUGFIX) ───────────────────────────────────────
+let bwChartInstance = null;
+
+function renderBodyweightChart() {
+  const canvas = document.getElementById('bwChart');
+  const card = canvas?.closest('.card');
+  if (!canvas) return;
+
+  // Collect bodyweight entries sorted oldest → newest
+  const entries = [...recoveryLogs]
+    .filter(r => r.bodyweight > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (bwChartInstance) { bwChartInstance.destroy(); bwChartInstance = null; }
+
+  if (!entries.length) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = '';
+
+  const labels = entries.map(r => formatDate(r.date));
+  const data   = entries.map(r => r.bodyweight);
+  const minBW  = Math.min(...data) - 2;
+  const maxBW  = Math.max(...data) + 2;
+
+  bwChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Bodyweight (kg)',
+        data,
+        borderColor: '#44ff88',
+        backgroundColor: 'rgba(68,255,136,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#44ff88',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.35,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#44ff88',
+          bodyColor: '#f0f0f0',
+          titleFont: { family: 'DM Mono' },
+          bodyFont: { family: 'DM Mono' },
+          callbacks: { label: ctx => `${ctx.raw} kg` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'DM Mono', size: 9 } }
+        },
+        y: {
+          min: minBW,
+          max: maxBW,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#44ff88', font: { family: 'DM Mono', size: 9 }, callback: v => v + ' kg' }
+        }
+      }
+    }
+  });
+}
+
+// ─── PROGRESS CHART & PRs ───────────────────────────────────────────────────
 function renderProgress() {
   renderPRs();
   renderChart();
+  renderBodyweightChart();
 }
 
 let activePRMuscle = 'All';
@@ -3132,20 +3346,20 @@ function exportCSV() {
   // ── WORKOUTS SECTION ──
   if (workouts.length) {
     csvContent += "WORKOUTS\n";
-    csvContent += "Date,Workout Name,Duration (min),Muscle Group,Exercise,Sets,Reps,Weight (kg),Est. 1RM (kg),Volume (kg),Notes\n";
+    csvContent += "Date,Workout Name,Duration (min),Exercise,Muscle,Sets,Reps,Weight (kg),Est. 1RM (kg),Volume (kg),Notes\n";
 
     workouts.forEach(w => {
       const date = w.date;
       const wName = `"${w.name || ''}"`;
       const dur = w.duration || '';
-      const muscle = w.muscle || '';
       const notes = `"${(w.notes || '').replace(/"/g, '""')}"`;
 
       w.exercises.forEach(e => {
         const eName = `"${e.name || ''}"`;
+        const eMuscle = e.muscle || '';
         const oneRM = Math.round(calculate1RM(e.weight, e.reps));
         const volume = Math.round(e.sets * e.reps * e.weight);
-        const row = [date, wName, dur, muscle, eName, e.sets, e.reps, e.weight, oneRM, volume, notes].join(",");
+        const row = [date, wName, dur, eName, eMuscle, e.sets, e.reps, e.weight, oneRM, volume, notes].join(",");
         csvContent += row + "\n";
       });
     });
@@ -3228,17 +3442,19 @@ function clearAllData() {
   if (confirm('DANGER: This permanently deletes all workouts, recovery logs, and custom exercises. Proceed?')) {
     workouts = [];
     recoveryLogs = [];
-    // Reset exercises to defaults or keep empty
     exercisesDB = [...defaultExercises];
-    
+
     save();
     localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
     localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
-    
+
     updateStats();
     renderHistory();
+    renderRecoveryHistory();
     renderProgress();
     renderNutritionInsights();
+    renderSettingsExerciseList();
+    renderExerciseDB();
     toast('All data wiped.');
   }
 }
