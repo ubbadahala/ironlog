@@ -1570,6 +1570,8 @@ input, select, textarea {
         <button class="chart-btn" onclick="setChartRange('3m', this)">3 Months</button>
       </div>
 
+      <div class="chart-controls" id="chartMuscleFilter" style="margin-top:-8px;margin-bottom:16px;"></div>
+
       <div class="chart-wrap">
         <canvas id="volumeChart"></canvas>
       </div>
@@ -2259,10 +2261,12 @@ function saveWorkout(durationMins) {
 function showRecap(workout, isVolumePR) {
   const vol = workout.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0);
   const totalSets = workout.exercises.reduce((a, e) => a + e.sets, 0);
+  const uniqueMuscles = [...new Set(workout.exercises.map(e => e.muscle).filter(Boolean))];
 
   // Hero
   document.getElementById('recapWorkoutName').textContent = workout.name;
-  document.getElementById('recapDate').textContent = formatDate(workout.date) + (workout.muscle ? ` · ${workout.muscle}` : '');
+  const muscleStr = uniqueMuscles.length ? ` · ${uniqueMuscles.join(' + ')}` : '';
+  document.getElementById('recapDate').textContent = formatDate(workout.date) + muscleStr;
 
   // Stat cards
   document.getElementById('recapStats').innerHTML = `
@@ -2282,26 +2286,37 @@ function showRecap(workout, isVolumePR) {
 
   // Build PRs map to detect new PRs in this session
   const prevPRs = {};
-  workouts.slice(1).forEach(w => {  // skip the just-saved workout (index 0)
+  workouts.slice(1).forEach(w => {
     w.exercises.forEach(e => {
       const key = e.name.toLowerCase();
       if (!prevPRs[key] || e.weight > prevPRs[key]) prevPRs[key] = e.weight;
     });
   });
 
-  // Exercise table
-  document.getElementById('recapTableBody').innerHTML = workout.exercises.map(e => {
-    const oneRM = Math.round(calculate1RM(e.weight, e.reps));
-    const isPR = e.weight > (prevPRs[e.name.toLowerCase()] || 0);
-    return `<tr>
-      <td>${e.name}${isPR ? '<span class="recap-pr-badge">NEW PR</span>' : ''}</td>
-      <td>${e.sets}</td>
-      <td>${e.reps}</td>
-      <td>${e.weight} kg</td>
-      <td>${Math.round(e.sets * e.reps * e.weight)} kg</td>
-      <td style="color:var(--accent);">${oneRM} kg</td>
-    </tr>`;
-  }).join('');
+  // Exercise table — grouped by muscle
+  const grouped = {};
+  workout.exercises.forEach(e => {
+    const m = e.muscle || 'Other';
+    if (!grouped[m]) grouped[m] = [];
+    grouped[m].push(e);
+  });
+
+  let tableRows = '';
+  Object.entries(grouped).forEach(([muscle, exs]) => {
+    tableRows += `<tr><td colspan="6" style="padding:10px 0 4px;font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.06);">${muscle}</td></tr>`;
+    exs.forEach(e => {
+      const oneRM = Math.round(calculate1RM(e.weight, e.reps));
+      const isPR = e.weight > (prevPRs[e.name.toLowerCase()] || 0);
+      tableRows += `<tr>
+        <td>${e.name}${isPR ? '<span class="recap-pr-badge">NEW PR</span>' : ''}</td>
+        <td>${e.sets}</td><td>${e.reps}</td>
+        <td>${e.weight} kg</td>
+        <td>${Math.round(e.sets * e.reps * e.weight)} kg</td>
+        <td style="color:var(--accent);">${oneRM} kg</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('recapTableBody').innerHTML = tableRows;
 
   // Notes
   const notesEl = document.getElementById('recapNotes');
@@ -2528,15 +2543,15 @@ function renderRadarChart() {
   const canvas = document.getElementById('muscleRadarChart');
   if (!canvas) return;
 
-  const distribution = {
-    'Chest': 0, 'Back': 0, 'Shoulders': 0, 
-    'Arms': 0, 'Legs': 0, 'Core': 0
-  };
+  const distribution = { 'Chest': 0, 'Back': 0, 'Shoulders': 0, 'Arms': 0, 'Legs': 0, 'Core': 0 };
 
+  // Count volume (not sessions) per muscle group across all exercises
   workouts.forEach(w => {
-    if (distribution[w.muscle] !== undefined) {
-      distribution[w.muscle]++;
-    }
+    w.exercises.forEach(e => {
+      if (e.muscle && distribution[e.muscle] !== undefined) {
+        distribution[e.muscle] += e.sets * e.reps * e.weight;
+      }
+    });
   });
 
   if (radarInstance) radarInstance.destroy();
@@ -2595,10 +2610,9 @@ function openEditWorkout(id) {
   document.getElementById('editWName').value = w.name || '';
   document.getElementById('editWDate').value = w.date || '';
   document.getElementById('editWDuration').value = w.duration || '';
-  document.getElementById('editWMuscle').value = w.muscle || '';
   document.getElementById('editWNotes').value = w.notes || '';
 
-  // Populate exercises
+  // Populate exercises (each carries its own muscle)
   const list = document.getElementById('editExercisesList');
   list.innerHTML = '';
   editExerciseCount = 0;
@@ -2732,13 +2746,16 @@ function renderHistory() {
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
     const density = w.duration ? (vol / w.duration).toFixed(1) : 0;
     const chips = [...new Set(w.exercises.map(e => e.name))].map(name => `<span class="chip">${name}</span>`).join('');
+    // Muscle pills: unique non-empty muscles across all exercises
+    const musclePills = [...new Set(w.exercises.map(e => e.muscle).filter(Boolean))]
+      .map(m => `<span class="meta-pill">${m}</span>`).join('');
     
-    // UPDATED: Added the 1RM calculation to the table rows
     const rows = w.exercises.map(e => {
       const oneRM = calculate1RM(e.weight, e.reps);
       return `
       <tr>
         <td>${e.name}</td>
+        <td style="color:var(--muted);font-size:0.72rem;">${e.muscle || '—'}</td>
         <td>${e.sets}</td>
         <td>${e.reps}</td>
         <td>${e.weight} kg</td>
@@ -2747,16 +2764,15 @@ function renderHistory() {
       </tr>
       `;
     }).join('');
-
     return `
     <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
       <div class="workout-entry-header">
         <div class="workout-entry-name">${w.name}</div>
         <div class="workout-meta">
-          ${w.muscle ? `<span class="meta-pill">${w.muscle}</span>` : ''}
+          ${musclePills}
           ${w.duration ? `<span class="meta-pill"><strong>${w.duration}</strong> min</span>` : ''}
-           <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> kg</span>
-     <span class="meta-pill">⚡ <strong>${density}</strong> kg/min</span>
+          <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> kg</span>
+          <span class="meta-pill">⚡ <strong>${density}</strong> kg/min</span>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -2767,13 +2783,12 @@ function renderHistory() {
         <div class="table-responsive">
           <table class="exercise-table">
             <thead>
-              <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Est. 1RM</th></tr>
+              <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Est. 1RM</th></tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
         ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
-        
         <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
           <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
           <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
@@ -2910,7 +2925,7 @@ function renderPRs() {
       if (!e.name) return;
       const key = e.name.toLowerCase();
       if (!prs[key] || e.weight > prs[key].weight) {
-        prs[key] = { name: e.name, weight: e.weight, sets: e.sets, reps: e.reps, date: w.date, muscle: w.muscle || 'Other' };
+        prs[key] = { name: e.name, weight: e.weight, sets: e.sets, reps: e.reps, date: w.date, muscle: e.muscle || 'Other' };
       }
     });
   });
@@ -2958,6 +2973,15 @@ function setPRMuscle(muscle) {
   renderPRs();
 }
 
+let activeChartMuscle = 'All';
+
+function setChartMuscle(muscle, btn) {
+  activeChartMuscle = muscle;
+  document.querySelectorAll('.chart-muscle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
 function renderChart() {
   const canvas = document.getElementById('volumeChart');
   const wrap = document.querySelector('.chart-wrap');
@@ -2974,7 +2998,27 @@ function renderChart() {
   const existingEmpty = wrap.querySelector('.empty-state');
   if (existingEmpty) existingEmpty.remove();
 
-  if (!filtered.length) {
+  // Rebuild muscle filter tabs from exercises in range
+  const allMusclesInRange = [...new Set(
+    filtered.flatMap(w => w.exercises.map(e => e.muscle).filter(Boolean))
+  )].sort();
+  const filterContainer = document.getElementById('chartMuscleFilter');
+  if (filterContainer) {
+    filterContainer.innerHTML = ['All', ...allMusclesInRange].map(m => `
+      <button class="chart-btn chart-muscle-btn ${m === activeChartMuscle ? 'active' : ''}"
+        onclick="setChartMuscle('${m}', this)">${m}</button>
+    `).join('');
+  }
+
+  // Filter workouts by active muscle (exercise-level)
+  const displayData = activeChartMuscle === 'All'
+    ? filtered
+    : filtered.map(w => ({
+        ...w,
+        exercises: w.exercises.filter(e => e.muscle === activeChartMuscle)
+      })).filter(w => w.exercises.length > 0);
+
+  if (!displayData.length) {
     canvas.style.display = 'none';
     wrap.insertAdjacentHTML('beforeend', '<div class="empty-state">No data for this period.</div>');
     document.getElementById('chartLegend').innerHTML = '';
@@ -2982,11 +3026,14 @@ function renderChart() {
   }
   canvas.style.display = 'block';
 
-  // Unique sorted dates in range
-  const allDates = [...new Set(filtered.map(w => w.date))].sort((a, b) => new Date(a) - new Date(b));
+  // Unique sorted dates
+  const allDates = [...new Set(displayData.map(w => w.date))].sort((a, b) => new Date(a) - new Date(b));
 
-  // Muscle groups present + colours
-  const muscleGroups = [...new Set(filtered.map(w => w.muscle || 'Other'))];
+  // Muscle groups from exercises (not sessions)
+  const muscleGroups = activeChartMuscle === 'All'
+    ? [...new Set(displayData.flatMap(w => w.exercises.map(e => e.muscle || 'Other')))]
+    : [activeChartMuscle];
+
   const palette = {
     'Chest':      { bg: 'rgba(232,255,71,0.7)',   border: '#e8ff47' },
     'Back':       { bg: 'rgba(255,107,53,0.7)',   border: '#ff6b35' },
@@ -2999,15 +3046,18 @@ function renderChart() {
     'Other':      { bg: 'rgba(120,120,120,0.5)',  border: '#888888' },
   };
 
-  // Build datasets — one per muscle group
+  // Volume per muscle group per date — from exercise.muscle
   const datasets = muscleGroups.map(muscle => {
     const c = palette[muscle] || { bg: 'rgba(200,200,200,0.5)', border: '#ccc' };
     return {
       label: muscle,
       data: allDates.map(date => {
-        return filtered
-          .filter(w => w.date === date && (w.muscle || 'Other') === muscle)
-          .reduce((sum, w) => sum + w.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0), 0) || null;
+        const vol = displayData
+          .filter(w => w.date === date)
+          .reduce((sum, w) => sum + w.exercises
+            .filter(e => (e.muscle || 'Other') === muscle)
+            .reduce((a, e) => a + e.sets * e.reps * e.weight, 0), 0);
+        return vol || null;
       }),
       backgroundColor: c.bg,
       borderColor: c.border,
@@ -3017,7 +3067,7 @@ function renderChart() {
     };
   });
 
-  // Build legend
+  // Legend
   document.getElementById('chartLegend').innerHTML = muscleGroups.map(m => {
     const c = palette[m] || { border: '#ccc' };
     return `<div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:${c.border};box-shadow:0 0 8px ${c.border};display:inline-block;"></span> ${m}</div>`;
@@ -3025,36 +3075,21 @@ function renderChart() {
 
   chartInstance = new Chart(canvas, {
     type: 'bar',
-    data: {
-      labels: allDates.map(d => formatDate(d)),
-      datasets,
-    },
+    data: { labels: allDates.map(d => formatDate(d)), datasets },
     options: {
       responsive: true,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#111',
-          borderColor: '#2a2a2a',
-          borderWidth: 1,
-          titleColor: '#e8ff47',
-          bodyColor: '#f0f0f0',
-          titleFont: { family: 'DM Mono' },
-          bodyFont: { family: 'DM Mono' },
+          backgroundColor: '#111', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#e8ff47', bodyColor: '#f0f0f0',
+          titleFont: { family: 'DM Mono' }, bodyFont: { family: 'DM Mono' },
           callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.raw || 0).toLocaleString()} kg` }
         }
       },
       scales: {
-        x: {
-          stacked: true,
-          grid: { display: false },
-          ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'DM Mono', size: 9 } }
-        },
-        y: {
-          stacked: true,
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#e8ff47', font: { family: 'DM Mono', size: 9 }, callback: v => v.toLocaleString() + ' kg' }
-        }
+        x: { stacked: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'DM Mono', size: 9 } } },
+        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#e8ff47', font: { family: 'DM Mono', size: 9 }, callback: v => v.toLocaleString() + ' kg' } }
       }
     }
   });
@@ -3062,7 +3097,7 @@ function renderChart() {
 
 function setChartRange(range, btn) {
   chartRange = range;
-  document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.chart-btn:not(.chart-muscle-btn)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderChart();
 }
