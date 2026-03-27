@@ -1281,7 +1281,228 @@ input, select, textarea {
     margin-left: 6px;
   }
 
-  /* ── EDIT MODAL ── */
+  /* ── LIGHT MODE ── */
+  body.light-mode {
+    --bg: #f2f2f0;
+    --glass-bg: rgba(255,255,255,0.7);
+    --glass-border: rgba(0,0,0,0.08);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    --surface: rgba(255,255,255,0.7);
+    --border: rgba(0,0,0,0.08);
+    --text: #111111;
+    --muted: #777;
+    --accent: #c4d600;
+    --accent2: #e05a00;
+    --red: #cc2222;
+    --green: #1a9e50;
+  }
+  body.light-mode::before {
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(196,214,0,0.07), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(224,90,0,0.06), transparent 30%),
+      linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  }
+  body.light-mode .glass-panel {
+    border-top-color: rgba(255,255,255,0.9);
+    border-left-color: rgba(255,255,255,0.7);
+  }
+  body.light-mode select option { background: #fff; color: #111; }
+
+  /* ── WEEKLY TARGET BAR ── */
+  .weekly-target-wrap {
+    margin-bottom: 28px;
+  }
+  .weekly-target-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .weekly-target-header strong { color: var(--accent); font-size: 0.85rem; }
+  .weekly-bar-bg {
+    height: 8px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .weekly-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 100%;
+  }
+
+  /* ── SET COUNTER BADGE ── */
+  .set-counter {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    font-weight: 700;
+    border-radius: 99px;
+    padding: 2px 5px;
+    pointer-events: none;
+    z-index: 10;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  /* ── SWIPE-TO-DELETE ── */
+  .workout-entry-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .swipe-delete-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,68,68,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--red);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-left: 4px solid var(--accent2);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+  .workout-entry {
+    margin-bottom: 0;
+    border-radius: 10px;
+    position: relative;
+    touch-action: pan-y;
+    transition: transform 0.15s ease;
+    will-change: transform;
+  }
+
+  /* ── LAST SESSION INFO BAR ── */
+  .last-session-bar {
+    display: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+  }
+  .last-session-bar.visible { display: block; }
+  .last-session-bar strong { color: var(--accent); }
+
+  /* ── HISTORY SORT/FILTER BAR ── */
+  .history-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .history-controls select {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 110px;
+    font-size: 0.78rem;
+    padding: 9px 10px;
+  }
+
+  /* ── STRENGTH CHART ── */
+  .strength-exercise-picker {
+    margin-bottom: 14px;
+  }
+  .strength-exercise-picker select {
+    margin-bottom: 0;
+    font-size: 0.82rem;
+  }
+
+
+  /* ── CUSTOM CONFIRM DIALOG ── */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,5,5,0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .confirm-overlay.active { opacity: 1; pointer-events: auto; }
+  .confirm-box {
+    background: rgba(18,18,18,0.97);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-top-color: rgba(255,255,255,0.22);
+    border-radius: 16px;
+    padding: 28px 24px 20px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    transform: scale(0.95) translateY(8px);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .confirm-overlay.active .confirm-box { transform: scale(1) translateY(0); }
+  .confirm-icon { font-size: 2rem; margin-bottom: 12px; line-height: 1; }
+  .confirm-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 0.07em;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .confirm-body {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-bottom: 22px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .confirm-btn {
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .confirm-btn-cancel {
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    border: 1px solid var(--glass-border);
+  }
+  .confirm-btn-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .confirm-btn-ok { background: var(--accent); color: #000; font-weight: 600; }
+  .confirm-btn-ok:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .confirm-btn-ok:active { transform: translateY(0); }
+  .confirm-btn-ok.danger {
+    background: rgba(255,68,68,0.12);
+    color: #ff7777;
+    border: 1px solid rgba(255,68,68,0.3);
+  }
+  .confirm-btn-ok.danger:hover { background: rgba(255,68,68,0.25); }
+
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -1473,7 +1694,18 @@ input, select, textarea {
       </div>
     </div>
 
-    <div class="card glass-panel">
+      <!-- Weekly volume target bar -->
+      <div class="weekly-target-wrap glass-panel card" id="weeklyTargetWrap" style="padding:16px 20px;margin-bottom:24px;display:none;">
+        <div class="weekly-target-header">
+          <span>This week's volume</span>
+          <strong id="weeklyVolDisplay">0 / 0 kg</strong>
+        </div>
+        <div class="weekly-bar-bg">
+          <div class="weekly-bar-fill" id="weeklyBarFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="card glass-panel">
       <div class="card-title">Log Workout</div>
 
       <!-- Session timer bar (shown when session is running) -->
@@ -1481,18 +1713,21 @@ input, select, textarea {
         <div>
           <div class="session-label">Session in progress</div>
           <div class="session-clock" id="sessionClock">00:00</div>
+          <div id="sessionVolDisplay" style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:0.06em;margin-top:2px;">0 kg</div>
         </div>
         <div style="text-align:right;">
           <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">
             Started at<br><span id="sessionStartLabel" style="color:var(--text);">—</span>
           </div>
+          <div class="last-session-bar" id="lastSessionBar"></div>
           <button onclick="cancelSession()" style="background:none;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);cursor:pointer;margin-top:6px;letter-spacing:0.05em;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕ cancel</button>
         </div>
       </div>
 
       <div>
         <label>Workout Name</label>
-        <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…">
+        <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…" list="workout-name-db" autocomplete="off">
+        <datalist id="workout-name-db"></datalist>
       </div>
       <div>
         <label>Date</label>
@@ -1520,6 +1755,7 @@ input, select, textarea {
 
       <!-- Start / End session button -->
       <button class="btn-start-session" id="sessionToggleBtn" onclick="toggleSession()">▶ Start Session</button>
+      <button class="btn btn-ghost" id="restDayBtn" onclick="logRestDay()" style="width:100%;margin-top:-12px;font-size:0.75rem;padding:10px;">🛌 Log Rest Day</button>
     </div>
 
     <div class="card glass-panel" style="border-color: rgba(68, 255, 136, 0.2);">
@@ -1584,8 +1820,21 @@ input, select, textarea {
   </div>
 
   <div class="view" id="view-history">
-    <div class="card glass-panel" style="padding:18px 24px; margin-bottom:20px;">
-      <input type="text" id="searchInput" placeholder="Search workouts…" style="margin-bottom:0;" oninput="renderHistory()">
+    <div class="card glass-panel" style="padding:18px 24px; margin-bottom:16px;">
+      <input type="text" id="searchInput" placeholder="Search workouts…" style="margin-bottom:12px;" oninput="renderHistory()">
+      <div class="history-controls">
+        <select id="historyMuscleFilter" onchange="renderHistory()" style="margin-bottom:0;flex:1;min-width:110px;font-size:0.78rem;padding:9px 10px;">
+          <option value="">All muscles</option>
+          <option>Chest</option><option>Back</option><option>Shoulders</option>
+          <option>Arms</option><option>Legs</option><option>Core</option>
+          <option>Full Body</option><option>Cardio</option>
+        </select>
+        <select id="historySortOrder" onchange="renderHistory()" style="margin-bottom:0;flex:1;min-width:110px;font-size:0.78rem;padding:9px 10px;">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="volume">Highest volume</option>
+        </select>
+      </div>
     </div>
     <div id="historyList"></div>
 
@@ -1635,6 +1884,18 @@ input, select, textarea {
     </div>
 
     <div class="card glass-panel chart-container-glass">
+      <div class="card-title">Strength Over Time</div>
+      <div class="strength-exercise-picker">
+        <select id="strengthExercisePicker" onchange="renderStrengthChart()" style="margin-bottom:0;font-size:0.82rem;">
+          <option value="">Pick an exercise…</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="strengthChart" style="max-height:200px;"></canvas>
+      </div>
+    </div>
+
+    <div class="card glass-panel chart-container-glass">
       <div class="card-title">Bodyweight Trend</div>
       <div class="bw-chart-wrap glass-panel" style="padding:16px;">
         <canvas id="bwChart" style="max-height:180px;"></canvas>
@@ -1660,6 +1921,31 @@ input, select, textarea {
   </div>
 
   <div class="view" id="view-settings">
+
+    <div class="card glass-panel">
+      <div class="card-title">Appearance</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+        <div>
+          <div style="font-size:0.9rem;color:var(--text);">Light Mode</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:2px;">Switch between dark and light theme</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="lightModeToggle" onchange="toggleLightMode(this.checked)">
+          <span class="slider-round"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card glass-panel">
+      <div class="card-title">Weekly Volume Target</div>
+      <p style="font-size:0.85rem;color:var(--text);opacity:0.8;margin-bottom:14px;">Set a weekly volume target (kg) to track on the Log tab.</p>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="number" id="weeklyTargetInput" placeholder="e.g. 10000" style="margin-bottom:0;flex:1;" min="0" step="500">
+        <button class="btn btn-primary" style="width:auto;padding:10px 18px;white-space:nowrap;" onclick="saveWeeklyTarget()">Save</button>
+      </div>
+      <div id="weeklyTargetHint" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:8px;"></div>
+    </div>
+
     <div class="card glass-panel">
       <div class="card-title">Exercise Database</div>
       <p style="font-size:0.85rem; color:var(--text); opacity:0.8; margin-bottom:16px;">Manage the exercises that appear in the autocomplete dropdown.</p>
@@ -1717,7 +2003,7 @@ input, select, textarea {
     <div class="card glass-panel" style="margin-bottom:24px;">
       <div class="card-title">Exercises</div>
       <table class="recap-exercise-table" id="recapTable">
-        <thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Volume</th><th>Est. 1RM</th></tr></thead>
+        <thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Wt(kg)</th><th>Vol(kg)</th><th>1RM(kg)</th></tr></thead>
         <tbody id="recapTableBody"></tbody>
       </table>
     </div>
@@ -1835,16 +2121,65 @@ input, select, textarea {
   <button class="timer-btn-close" onclick="stopTimer()">✕ Close Timer</button>
 </div>
 
+<!-- ── CUSTOM CONFIRM DIALOG ── -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon"></div>
+    <div class="confirm-title" id="confirmTitle"></div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="confirmCancel" onclick="dismissConfirm()">Cancel</button>
+      <button class="confirm-btn confirm-btn-ok" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 let recoveryLogs = JSON.parse(localStorage.getItem('ironlog_recovery') || '[]');
 // ─── STATE ───────────────────────────────────────────────────────────────────
+
+// ─── CUSTOM CONFIRM DIALOG ───────────────────────────────────────────────────
+let _confirmCallback = null;
+
+function showConfirm({ icon = '', title, body, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel = null }) {
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmIcon').style.display = icon ? 'block' : 'none';
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent = body || '';
+  const okBtn = document.getElementById('confirmOk');
+  okBtn.textContent = confirmLabel;
+  okBtn.className = 'confirm-btn confirm-btn-ok' + (danger ? ' danger' : '');
+  _confirmCallback = onConfirm;
+  _cancelCallback = onCancel;
+  okBtn.onclick = () => { dismissConfirm(); if (_confirmCallback) _confirmCallback(); };
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+let _cancelCallback = null;
+
+function dismissConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
+  if (_cancelCallback) _cancelCallback();
+  _confirmCallback = null;
+  _cancelCallback = null;
+}
+
+// Close on overlay background click
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('confirmOverlay').addEventListener('click', e => {
+    if (e.target.id === 'confirmOverlay') dismissConfirm();
+  });
+});
 let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
 let exerciseCount = 0;
 let chartInstance = null;
 let chartRange = '4w';
+let weeklyTarget = parseInt(localStorage.getItem('ironlog_weekly_target') || '0');
+let restDays = JSON.parse(localStorage.getItem('ironlog_rest_days') || '[]'); // array of date strings
+let strengthChartInstance = null;
 
 const defaultExercises = [
   { name: "Barbell Row",                  muscle: "Back" },
@@ -1886,8 +2221,22 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('wDate').value = now.toISOString().split('T')[0];
   document.getElementById('dateDisplay').textContent =
     now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  
+
+  // Restore light mode preference
+  if (localStorage.getItem('ironlog_light_mode') === '1') {
+    document.body.classList.add('light-mode');
+    const toggle = document.getElementById('lightModeToggle');
+    if (toggle) toggle.checked = true;
+  }
+
+  // Restore weekly target
+  const storedTarget = parseInt(localStorage.getItem('ironlog_weekly_target') || '0');
+  weeklyTarget = storedTarget;
+  const targetInput = document.getElementById('weeklyTargetInput');
+  if (targetInput && storedTarget) targetInput.value = storedTarget;
+
   renderExerciseDB();
+  refreshWorkoutNameDB();
   renderSettingsExerciseList();
   addExerciseRow();
   updateStats();
@@ -1976,18 +2325,25 @@ function setExerciseMuscle(index, muscle) {
 }
 
 function removeCustomExercise(index) {
-  if (confirm(`Delete "${exercisesDB[index].name}" from the database?`)) {
-    exercisesDB.splice(index, 1);
-    saveExercises();
-  }
+  showConfirm({
+    icon: '🗑️',
+    title: 'Delete Exercise',
+    body: `Remove "${exercisesDB[index].name}" from the database?`,
+    confirmLabel: 'Delete',
+    danger: true,
+    onConfirm: () => { exercisesDB.splice(index, 1); saveExercises(); }
+  });
 }
 
 function restoreDefaultExercises() {
-  if (confirm("Restore the default exercise list? This will replace your custom entries.")) {
-    exercisesDB = [...defaultExercises];
-    saveExercises();
-    toast("Default exercises restored!");
-  }
+  showConfirm({
+    icon: '↺',
+    title: 'Restore Defaults',
+    body: 'This will replace your custom exercise list with the defaults. This cannot be undone.',
+    confirmLabel: 'Restore',
+    danger: true,
+    onConfirm: () => { exercisesDB = [...defaultExercises]; saveExercises(); toast('Default exercises restored!'); }
+  });
 }
 
 function saveExercises() {
@@ -2185,27 +2541,38 @@ function checkMuscleTag(id) {
   else row.classList.remove('no-muscle');
 }
 
-// Called when the ✓ button is clicked — triggers rest timer then removes the row
+// Called when the ✓ button is clicked — triggers rest timer, set counter, haptic
 function logSet(id) {
   const row = document.getElementById('ex-' + id);
   if (!row) return;
   const name = row.querySelector('[data-field="name"]').value.trim();
   const muscle = row.querySelector('[data-field="muscle"]')?.value || '';
   if (name) triggerSmartTimer(name, muscle);
+  incrementSetCounter(id);
+  if (navigator.vibrate) navigator.vibrate(50); // #11 haptic
+  updateSessionVolume(); // #2 live vol
 }
 
 // Cancel a running session without saving
 function cancelSession() {
-  if (!confirm('Cancel this session? Nothing will be saved.')) return;
-  clearInterval(sessionClockInterval);
-  sessionClockInterval = null;
-  sessionStartTime = null;
-  document.getElementById('sessionBar').classList.remove('active');
-  document.getElementById('sessionClock').textContent = '00:00';
-  const btn = document.getElementById('sessionToggleBtn');
-  btn.textContent = '▶ Start Session';
-  btn.classList.remove('running');
-  toast('Session cancelled');
+  showConfirm({
+    icon: '✕',
+    title: 'Cancel Session',
+    body: 'Nothing will be saved. Are you sure you want to discard this session?',
+    confirmLabel: 'Yes, Cancel',
+    danger: true,
+    onConfirm: () => {
+      clearInterval(sessionClockInterval);
+      sessionClockInterval = null;
+      sessionStartTime = null;
+      document.getElementById('sessionBar').classList.remove('active');
+      document.getElementById('sessionClock').textContent = '00:00';
+      const btn = document.getElementById('sessionToggleBtn');
+      btn.textContent = '▶ Start Session';
+      btn.classList.remove('running');
+      toast('Session cancelled');
+    }
+  });
 }
 
 function peekHistory(id) {
@@ -2232,12 +2599,14 @@ function peekHistory(id) {
   if (!history.length) {
     popover.innerHTML = `<div class="peek-popover-title">${name}</div><div class="peek-popover-empty">No history yet</div>`;
   } else {
+    // Find the PR weight across all history
+    const prWeight = Math.max(...history.map(h => h.weight));
     popover.innerHTML = `
       <div class="peek-popover-title">Last ${history.length} · ${name}</div>
       <table>
-        ${history.map(h => `<tr>
+        ${history.map(h => `<tr${h.weight === prWeight ? ' style="color:var(--accent)"' : ''}>
           <td>${formatDate(h.date)}</td>
-          <td>${h.sets}×${h.reps} @ <strong style="color:var(--accent)">${h.weight}kg</strong></td>
+          <td>${h.sets}×${h.reps} @ <strong style="color:var(--accent)">${h.weight}kg</strong>${h.weight === prWeight ? ' 🏆' : ''}</td>
         </tr>`).join('')}
       </table>`;
   }
@@ -2335,18 +2704,26 @@ function startSession() {
     const nowDate = new Date().toISOString().split('T')[0];
     const dateField = document.getElementById('wDate');
     if (dateField.value !== nowDate) dateField.value = nowDate;
+    // Update live session volume
+    updateSessionVolume();
   }, 1000);
+
+  // Show last time this workout was done
+  updateLastSessionInfo(document.getElementById('wName').value.trim());
 }
 
 function confirmEndSession() {
   const exercises = collectExercises();
   if (!exercises.length) return toast('Add at least one exercise first!');
-
   const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
   const mins = Math.round(elapsed / 60);
-
-  if (!confirm(`End session after ${mins} min? This will save your workout.`)) return;
-  saveWorkout(mins);
+  showConfirm({
+    icon: '💾',
+    title: 'End Session',
+    body: `Save workout after ${mins} min?`,
+    confirmLabel: 'Save & End',
+    onConfirm: () => saveWorkout(mins)
+  });
 }
 
 // ─── SAVE WORKOUT ─────────────────────────────────────────────────────────────
@@ -2384,6 +2761,7 @@ function saveWorkout(durationMins) {
   workouts.unshift(workout);
   save();
   updateStats();
+  refreshWorkoutNameDB();
 
   if (isVolumePR) { triggerConfetti(); }
 
@@ -2461,9 +2839,9 @@ function showRecap(workout, isVolumePR) {
       tableRows += `<tr>
         <td>${e.name}${isPR ? '<span class="recap-pr-badge">NEW PR</span>' : ''}</td>
         <td>${e.sets}</td><td>${e.reps}</td>
-        <td>${e.weight} kg</td>
-        <td>${Math.round(e.sets * e.reps * e.weight)} kg</td>
-        <td style="color:var(--accent);">${oneRM} kg</td>
+        <td>${e.weight}</td>
+        <td>${Math.round(e.sets * e.reps * e.weight)}</td>
+        <td style="color:var(--accent);">${oneRM}</td>
       </tr>`;
     });
   });
@@ -2656,21 +3034,22 @@ function updateStats() {
   }, 0);
   document.getElementById('statVolume').textContent = Math.round(totalVol).toLocaleString();
 
-  // Compute current streak (consecutive days with at least 1 workout)
-  const workoutDates = new Set(workouts.map(w => w.date));
+  // Compute current streak — workouts OR intentional rest days both count
+  const activeDates = new Set([...workouts.map(w => w.date), ...restDays]);
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const ds = d.toISOString().split('T')[0];
-    if (workoutDates.has(ds)) {
+    if (activeDates.has(ds)) {
       streak++;
-    } else if (i > 0) { // allow today to have no workout yet
+    } else if (i > 0) {
       break;
     }
   }
   document.getElementById('statStreak').textContent = streak;
+  updateWeeklyTargetBar();
 }
 
 // ─── MUSCLE RADAR ─────────────────────────────────────────────────────────────
@@ -2868,12 +3247,24 @@ function saveEditedRecovery() {
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 function renderHistory() {
   const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const muscleFilter = document.getElementById('historyMuscleFilter')?.value || '';
+  const sortOrder = document.getElementById('historySortOrder')?.value || 'newest';
   const list = document.getElementById('historyList');
-  const filtered = workouts.filter(w =>
-    w.name.toLowerCase().includes(q) ||
+
+  let filtered = workouts.filter(w =>
+    (w.name.toLowerCase().includes(q) ||
     w.exercises.some(e => e.name.toLowerCase().includes(q)) ||
-    w.exercises.some(e => (e.muscle || '').toLowerCase().includes(q))
+    w.exercises.some(e => (e.muscle || '').toLowerCase().includes(q))) &&
+    (!muscleFilter || w.exercises.some(e => e.muscle === muscleFilter))
   );
+
+  if (sortOrder === 'oldest') filtered = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
+  else if (sortOrder === 'volume') filtered = [...filtered].sort((a, b) => {
+    const va = a.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
+    const vb = b.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
+    return vb - va;
+  });
+  // default: newest first (already newest-first from unshift)
 
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div>No workouts found.</div>`;
@@ -2884,10 +3275,9 @@ function renderHistory() {
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
     const density = w.duration ? (vol / w.duration).toFixed(1) : 0;
     const chips = [...new Set(w.exercises.map(e => e.name))].map(name => `<span class="chip">${name}</span>`).join('');
-    // Muscle pills: unique non-empty muscles across all exercises
     const musclePills = [...new Set(w.exercises.map(e => e.muscle).filter(Boolean))]
       .map(m => `<span class="meta-pill">${m}</span>`).join('');
-    
+
     const rows = w.exercises.map(e => {
       const oneRM = calculate1RM(e.weight, e.reps);
       return `
@@ -2899,43 +3289,51 @@ function renderHistory() {
         <td>${e.weight}</td>
         <td>${Math.round(e.sets * e.reps * e.weight)}</td>
         <td style="color: var(--accent); font-weight: 500;">${Math.round(oneRM)}</td>
-      </tr>
-      `;
+      </tr>`;
     }).join('');
-    
+
     return `
-    <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
-      <div class="workout-entry-header">
-        <div class="workout-entry-name">${w.name}</div>
-        <div class="workout-meta">
-          ${musclePills}
-          ${w.duration ? `<span class="meta-pill"><strong>${w.duration}</strong> min</span>` : ''}
-          <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> vol</span>
-          <span class="meta-pill">⚡ <strong>${density}</strong> /min</span>
+    <div class="workout-entry-wrap">
+      <div class="swipe-delete-bg">Delete ✕</div>
+      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
+        <div class="workout-entry-header">
+          <div class="workout-entry-name">${w.name}</div>
+          <div class="workout-meta">
+            ${musclePills}
+            ${w.duration ? `<span class="meta-pill"><strong>${w.duration}</strong> min</span>` : ''}
+            <span class="meta-pill"><strong>${Math.round(vol).toLocaleString()}</strong> vol</span>
+            <span class="meta-pill">⚡ <strong>${density}</strong> /min</span>
+          </div>
         </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div class="exercise-chips">${chips}</div>
-        <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text);opacity:0.6;">${formatDate(w.date)}</span>
-      </div>
-      <div class="expanded-detail">
-        <div class="table-responsive">
-          <table class="exercise-table">
-            <thead>
-              <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="exercise-chips">${chips}</div>
+          <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text);opacity:0.6;">${formatDate(w.date)}</span>
         </div>
-        ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
-        <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
-          <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
-          <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
-          <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
+        <div class="expanded-detail">
+          <div class="table-responsive">
+            <table class="exercise-table">
+              <thead>
+                <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
+          <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
+            <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
+            <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
+            <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
+          </div>
         </div>
       </div>
     </div>`;
   }).join('');
+
+  // Attach swipe-to-delete to each entry
+  filtered.forEach(w => {
+    const el = document.getElementById('we-' + w.id);
+    if (el) attachSwipeDelete(el, w.id);
+  });
 }
 
 function toggleEntry(id) {
@@ -2972,12 +3370,20 @@ function renderRecoveryHistory() {
 }
 
 function deleteWorkout(id) {
-  if (!confirm('Delete this workout?')) return;
-  workouts = workouts.filter(w => w.id !== id);
-  save();
-  updateStats();
-  renderHistory();
-  toast('Workout deleted');
+  showConfirm({
+    icon: '🗑️',
+    title: 'Delete Workout',
+    body: 'This workout will be permanently removed. This cannot be undone.',
+    confirmLabel: 'Delete',
+    danger: true,
+    onConfirm: () => {
+      workouts = workouts.filter(w => w.id !== id);
+      save();
+      updateStats();
+      renderHistory();
+      toast('Workout deleted');
+    }
+  });
 }
 
 // ─── SHARE WORKOUT AS IMAGE ───────────────────────────────────────────────────
@@ -3128,6 +3534,8 @@ function renderProgress() {
   renderPRs();
   renderChart();
   renderBodyweightChart();
+  populateStrengthPicker();
+  renderStrengthChart();
 }
 
 let activePRMuscle = 'All';
@@ -3407,30 +3815,35 @@ function importJSON() {
     try {
       const imported = JSON.parse(e.target.result);
       
-      if (confirm('Importing will merge/replace current data. Continue?')) {
+      const doImport = () => {
         // Handle New Full Backup Format (Object)
         if (imported.workouts && imported.recovery) {
           workouts = imported.workouts;
           recoveryLogs = imported.recovery;
           if (imported.exercises) exercisesDB = migrateExercisesDB(JSON.stringify(imported.exercises));
-          
           localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
           localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-        } 
+        }
         // Handle Legacy Backup Format (Simple Array)
         else if (Array.isArray(imported)) {
           workouts = imported;
         }
-
-        save(); // Saves workouts to localStorage
+        save();
         updateStats();
         renderHistory();
         renderProgress();
-        renderNutritionInsights(); // Refresh the new UI components
-        
+        renderNutritionInsights();
         toast('Data restored successfully! ✅');
-        fileInput.value = ''; 
-      }
+        fileInput.value = '';
+      };
+
+      showConfirm({
+        icon: '⬆️',
+        title: 'Import Backup',
+        body: 'This will merge/replace your current data with the backup file. Continue?',
+        confirmLabel: 'Import',
+        onConfirm: doImport
+      });
     } catch (err) {
       console.error(err);
       toast('Error: Invalid backup file.');
@@ -3440,24 +3853,29 @@ function importJSON() {
 }
 
 function clearAllData() {
-  if (confirm('DANGER: This permanently deletes all workouts, recovery logs, and custom exercises. Proceed?')) {
-    workouts = [];
-    recoveryLogs = [];
-    exercisesDB = [...defaultExercises];
-
-    save();
-    localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-    localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
-
-    updateStats();
-    renderHistory();
-    renderRecoveryHistory();
-    renderProgress();
-    renderNutritionInsights();
-    renderSettingsExerciseList();
-    renderExerciseDB();
-    toast('All data wiped.');
-  }
+  showConfirm({
+    icon: '⚠️',
+    title: 'Delete All Data',
+    body: 'This permanently deletes all workouts, recovery logs, and custom exercises. Make sure you have exported a backup first.',
+    confirmLabel: 'Delete Everything',
+    danger: true,
+    onConfirm: () => {
+      workouts = [];
+      recoveryLogs = [];
+      exercisesDB = [...defaultExercises];
+      save();
+      localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
+      localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
+      updateStats();
+      renderHistory();
+      renderRecoveryHistory();
+      renderProgress();
+      renderNutritionInsights();
+      renderSettingsExerciseList();
+      renderExerciseDB();
+      toast('All data wiped.');
+    }
+  });
 }
 
 // ─── FULL PAGE REST TIMER LOGIC ───────────────────────────────────────────────
@@ -3522,7 +3940,219 @@ function calculate1RM(weight, reps) {
   return weight * (1 + (reps / 30));
 }
 
-// ─── UTILS ────────────────────────────────────────────────────────────────────
+// ─── #12 LIGHT MODE ───────────────────────────────────────────────────────────
+function toggleLightMode(on) {
+  document.body.classList.toggle('light-mode', on);
+  localStorage.setItem('ironlog_light_mode', on ? '1' : '0');
+}
+
+// ─── #5 WEEKLY VOLUME TARGET ──────────────────────────────────────────────────
+function saveWeeklyTarget() {
+  const val = parseInt(document.getElementById('weeklyTargetInput').value) || 0;
+  weeklyTarget = val;
+  localStorage.setItem('ironlog_weekly_target', val);
+  updateWeeklyTargetBar();
+  toast(val > 0 ? `Target set: ${val.toLocaleString()} kg/week 🎯` : 'Target cleared');
+}
+
+function updateWeeklyTargetBar() {
+  const wrap = document.getElementById('weeklyTargetWrap');
+  const hint = document.getElementById('weeklyTargetHint');
+  if (!wrap) return;
+  if (!weeklyTarget) { wrap.style.display = 'none'; if (hint) hint.textContent = 'No target set.'; return; }
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const weekVol = workouts
+    .filter(w => new Date(w.date) >= weekStart)
+    .reduce((sum, w) => sum + w.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0), 0);
+
+  const pct = Math.min(100, (weekVol / weeklyTarget) * 100);
+  wrap.style.display = '';
+  document.getElementById('weeklyVolDisplay').textContent =
+    `${Math.round(weekVol).toLocaleString()} / ${weeklyTarget.toLocaleString()} kg`;
+  document.getElementById('weeklyBarFill').style.width = pct + '%';
+  if (hint) hint.textContent = weeklyTarget > 0
+    ? `Current: ${Math.round(weekVol).toLocaleString()} kg this week (${Math.round(pct)}%)`
+    : 'No target set.';
+}
+
+// ─── #6 REST DAY ──────────────────────────────────────────────────────────────
+function logRestDay() {
+  const today = new Date().toISOString().split('T')[0];
+  if (restDays.includes(today)) return toast('Rest day already logged for today.');
+  restDays.push(today);
+  localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
+  updateStats();
+  toast('Rest day logged 🛌 Streak preserved!');
+}
+
+// ─── #9 LAST SESSION INFO ─────────────────────────────────────────────────────
+function updateLastSessionInfo(workoutName) {
+  const bar = document.getElementById('lastSessionBar');
+  if (!bar) return;
+  if (!workoutName) { bar.classList.remove('visible'); return; }
+  const prev = workouts.find(w => w.name.toLowerCase() === workoutName.toLowerCase());
+  if (!prev) { bar.classList.remove('visible'); return; }
+  const vol = prev.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0);
+  const daysAgo = Math.round((Date.now() - new Date(prev.date + 'T00:00:00')) / 86400000);
+  const daysStr = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
+  bar.innerHTML = `Last: <strong>${daysStr}</strong> · <strong>${Math.round(vol).toLocaleString()} kg</strong>`;
+  bar.classList.add('visible');
+}
+
+// ─── #2 LIVE SESSION VOLUME ───────────────────────────────────────────────────
+function updateSessionVolume() {
+  const el = document.getElementById('sessionVolDisplay');
+  if (!el || !sessionStartTime) return;
+  const exercises = collectExercises();
+  const vol = exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0);
+  el.textContent = `${Math.round(vol).toLocaleString()} kg`;
+}
+
+// ─── #3 SET COUNTER ───────────────────────────────────────────────────────────
+function incrementSetCounter(id) {
+  const btn = document.querySelector(`#ex-${id} .btn-confirm`);
+  if (!btn) return;
+  let badge = btn.querySelector('.set-counter');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'set-counter';
+    btn.style.position = 'relative';
+    btn.appendChild(badge);
+  }
+  const current = parseInt(badge.dataset.sets || '0') + 1;
+  badge.dataset.sets = current;
+  badge.textContent = `S${current}`;
+}
+
+// ─── #4 STRENGTH OVER TIME CHART ─────────────────────────────────────────────
+function populateStrengthPicker() {
+  const picker = document.getElementById('strengthExercisePicker');
+  if (!picker) return;
+  const names = [...new Set(workouts.flatMap(w => w.exercises.map(e => e.name)))].sort();
+  const current = picker.value;
+  picker.innerHTML = '<option value="">Pick an exercise…</option>' +
+    names.map(n => `<option value="${n}" ${n === current ? 'selected' : ''}>${n}</option>`).join('');
+}
+
+function renderStrengthChart() {
+  const picker = document.getElementById('strengthExercisePicker');
+  const canvas = document.getElementById('strengthChart');
+  if (!canvas || !picker) return;
+
+  const name = picker.value;
+  if (!name) { if (strengthChartInstance) { strengthChartInstance.destroy(); strengthChartInstance = null; } return; }
+
+  // Best weight per session date
+  const points = workouts
+    .filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()))
+    .map(w => {
+      const best = w.exercises
+        .filter(e => e.name.toLowerCase() === name.toLowerCase())
+        .reduce((a, b) => b.weight > a.weight ? b : a);
+      return { date: w.date, weight: best.weight, reps: best.reps };
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (strengthChartInstance) { strengthChartInstance.destroy(); strengthChartInstance = null; }
+  if (!points.length) return;
+
+  // Mark PRs
+  let maxW = 0;
+  const isPR = points.map(p => { const pr = p.weight > maxW; if (pr) maxW = p.weight; return pr; });
+
+  strengthChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: points.map(p => formatDate(p.date)),
+      datasets: [{
+        label: name,
+        data: points.map(p => p.weight),
+        borderColor: '#e8ff47',
+        backgroundColor: 'rgba(232,255,71,0.07)',
+        borderWidth: 2.5,
+        pointBackgroundColor: points.map((_, i) => isPR[i] ? '#e8ff47' : 'rgba(232,255,71,0.4)'),
+        pointRadius: points.map((_, i) => isPR[i] ? 6 : 4),
+        pointHoverRadius: 7,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#e8ff47', bodyColor: '#f0f0f0',
+          titleFont: { family: 'DM Mono' }, bodyFont: { family: 'DM Mono' },
+          callbacks: {
+            label: ctx => {
+              const p = points[ctx.dataIndex];
+              return `${p.weight} kg × ${p.reps} reps${isPR[ctx.dataIndex] ? ' 🏆 PR' : ''}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'DM Mono', size: 9 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#e8ff47', font: { family: 'DM Mono', size: 9 }, callback: v => v + ' kg' } }
+      }
+    }
+  });
+}
+
+// ─── #8 SWIPE TO DELETE ───────────────────────────────────────────────────────
+function attachSwipeDelete(el, workoutId) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const THRESHOLD = 80;
+
+  el.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX - startX;
+    if (currentX < 0) el.style.transform = `translateX(${Math.max(currentX, -120)}px)`;
+  }, { passive: true });
+
+  el.addEventListener('touchend', () => {
+    isDragging = false;
+    if (currentX < -THRESHOLD) {
+      el.style.transform = 'translateX(-120px)';
+      showConfirm({
+        icon: '🗑️',
+        title: 'Delete Workout',
+        body: 'This workout will be permanently removed.',
+        confirmLabel: 'Delete',
+        danger: true,
+        onConfirm: () => deleteWorkout(workoutId),
+        onCancel: () => { el.style.transform = ''; }
+      });
+    } else {
+      el.style.transform = '';
+    }
+    currentX = 0;
+  });
+}
+
+// ─── #14 PR HIGHLIGHT IN PEEK HISTORY ────────────────────────────────────────
+// (integrated into peekHistory below — see updated function)
+
+// ─── #7 WORKOUT NAME AUTOCOMPLETE ────────────────────────────────────────────
+function refreshWorkoutNameDB() {
+  const dl = document.getElementById('workout-name-db');
+  if (!dl) return;
+  const names = [...new Set(workouts.map(w => w.name))];
+  dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+}
+
+
 function save() {
   localStorage.setItem('ironlog_workouts', JSON.stringify(workouts));
 }
