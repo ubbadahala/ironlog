@@ -1271,6 +1271,11 @@ input, select, textarea {
   .recap-exercise-table tr:last-child td { border-bottom: none; }
 
   .recap-pr-badge {
+    display: block; /* Forces the badge onto a new line */
+    width: fit-content; /* Keeps the background hugging the text tightly */
+    margin-top: 4px; /* Adds a little breathing room above it */
+    margin-left: 0; /* Removed the old left margin */
+    
     background: rgba(232,255,71,0.15);
     color: var(--accent);
     border: 1px solid rgba(232,255,71,0.3);
@@ -1278,7 +1283,6 @@ input, select, textarea {
     padding: 2px 6px;
     font-size: 0.6rem;
     letter-spacing: 0.06em;
-    margin-left: 6px;
   }
 
   /* ── LIGHT MODE ── */
@@ -2143,28 +2147,46 @@ let recoveryLogs = JSON.parse(localStorage.getItem('ironlog_recovery') || '[]');
 
 // ─── CUSTOM CONFIRM DIALOG ───────────────────────────────────────────────────
 let _confirmCallback = null;
+let _cancelCallback = null;
 
 function showConfirm({ icon = '', title, body, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel = null }) {
   document.getElementById('confirmIcon').textContent = icon;
   document.getElementById('confirmIcon').style.display = icon ? 'block' : 'none';
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmBody').textContent = body || '';
+  
   const okBtn = document.getElementById('confirmOk');
   okBtn.textContent = confirmLabel;
   okBtn.className = 'confirm-btn confirm-btn-ok' + (danger ? ' danger' : '');
+  
   _confirmCallback = onConfirm;
   _cancelCallback = onCancel;
-  okBtn.onclick = () => { dismissConfirm(); if (_confirmCallback) _confirmCallback(); };
+  
+  okBtn.onclick = () => { 
+    // Save the callback before wiping it
+    const cb = _confirmCallback; 
+    
+    // Wipe callbacks first so dismissConfirm doesn't fire the cancel action
+    _confirmCallback = null;
+    _cancelCallback = null;
+    
+    dismissConfirm(); 
+    if (cb) cb(); 
+  };
+  
   document.getElementById('confirmOverlay').classList.add('active');
 }
 
-let _cancelCallback = null;
-
 function dismissConfirm() {
   document.getElementById('confirmOverlay').classList.remove('active');
-  if (_cancelCallback) _cancelCallback();
+  
+  // Save the cancel callback before wiping
+  const cb = _cancelCallback;
+  
   _confirmCallback = null;
   _cancelCallback = null;
+  
+  if (cb) cb();
 }
 
 // Close on overlay background click
@@ -2173,6 +2195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'confirmOverlay') dismissConfirm();
   });
 });
+
 let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
 let exerciseCount = 0;
 let chartInstance = null;
