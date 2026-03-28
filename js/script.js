@@ -491,10 +491,17 @@ function updateDeltaLoad(bid, lid) {
   const name = block.querySelector('[data-field="name"]').value.trim();
   const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
   const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
-  if (!name || !workouts.length) return;
+  
+  // Helper to cleanly remove deltas and reset margin
+  const clearDeltas = () => {
+    row.classList.remove('has-deltas');
+    row.querySelectorAll('.delta-box').forEach(el => el.remove());
+  };
+
+  if (!name || !workouts.length) return clearDeltas();
 
   const recentWorkout = workouts.find(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
-  if (!recentWorkout) return;
+  if (!recentWorkout) return clearDeltas();
 
   const best = recentWorkout.exercises
     .filter(e => e.name.toLowerCase() === name.toLowerCase())
@@ -502,6 +509,9 @@ function updateDeltaLoad(bid, lid) {
 
   renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, reps - best.reps, 'r');
   renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weight - best.weight, 'kg');
+  
+  // Triggers the CSS to expand the margin
+  row.classList.add('has-deltas');
 }
 
 function predictLoadBlock(bid, lid) {
@@ -1055,6 +1065,63 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+// ── OPEN WORKOUT VIEW MODAL ──
+function openViewWorkout(id) {
+  const w = workouts.find(x => x.id === id);
+  if (!w) return;
+
+  const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+
+  document.getElementById('viewWName').textContent = w.name;
+  document.getElementById('viewWDate').textContent = formatDate(w.date);
+  document.getElementById('viewWDuration').textContent = w.duration || '0';
+  document.getElementById('viewWVolume').textContent = Math.round(vol).toLocaleString();
+
+  // Group the flat exercises back together by Name + Muscle for the UI
+  const grouped = {};
+  w.exercises.forEach(e => {
+    const key = e.name.toLowerCase();
+    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, setsData: [] };
+    grouped[key].setsData.push({ s: e.sets, r: e.reps, w: e.weight });
+  });
+
+  const tbody = document.getElementById('viewWExercises');
+  tbody.innerHTML = Object.values(grouped).map(group => {
+    const totalVol = group.setsData.reduce((a, e) => a + (e.s * e.r * e.w), 0);
+    const max1RM = Math.max(...group.setsData.map(e => calculate1RM(e.w, e.r)));
+    
+    // Stack the load entries visually using line breaks
+    const setsHtml = group.setsData.map(e => e.s).join('<br>');
+    const repsHtml = group.setsData.map(e => e.r).join('<br>');
+    const weightHtml = group.setsData.map(e => e.w).join('<br>');
+
+    return `
+    <tr>
+      <td style="vertical-align:top; padding-top:10px;">${group.name}</td>
+      <td style="color:var(--muted);font-size:0.72rem; vertical-align:top; padding-top:10px;">${group.muscle || '—'}</td>
+      <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${setsHtml}</td>
+      <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${repsHtml}</td>
+      <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${weightHtml}</td>
+      <td style="vertical-align:top; padding-top:10px;">${Math.round(totalVol)}</td>
+      <td style="color: var(--accent); font-weight: 500; vertical-align:top; padding-top:10px;">${Math.round(max1RM)}</td>
+    </tr>`;
+  }).join('');
+
+  const notesContainer = document.getElementById('viewWNotesContainer');
+  if (w.notes) {
+    document.getElementById('viewWNotes').textContent = w.notes;
+    notesContainer.style.display = 'block';
+  } else {
+    notesContainer.style.display = 'none';
+  }
+
+  document.getElementById('viewBtnEdit').onclick = () => { closeModal('viewWorkoutModal'); openEditWorkout(w.id); };
+  document.getElementById('viewBtnShare').onclick = () => shareWorkout(w.id);
+  document.getElementById('viewBtnDelete').onclick = () => { closeModal('viewWorkoutModal'); deleteWorkout(w.id); };
+
+  openModal('viewWorkoutModal');
+}
+
 // Close modal when clicking overlay background
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
@@ -1222,24 +1289,10 @@ function renderHistory() {
     const musclePills = [...new Set(w.exercises.map(e => e.muscle).filter(Boolean))]
       .map(m => `<span class="meta-pill">${m}</span>`).join('');
 
-    const rows = w.exercises.map(e => {
-      const oneRM = calculate1RM(e.weight, e.reps);
-      return `
-      <tr>
-        <td>${e.name}</td>
-        <td style="color:var(--muted);font-size:0.72rem;">${e.muscle || '—'}</td>
-        <td>${e.sets}</td>
-        <td>${e.reps}</td>
-        <td>${e.weight}</td>
-        <td>${Math.round(e.sets * e.reps * e.weight)}</td>
-        <td style="color: var(--accent); font-weight: 500;">${Math.round(oneRM)}</td>
-      </tr>`;
-    }).join('');
-
     return `
     <div class="workout-entry-wrap">
       <div class="swipe-delete-bg">Delete ✕</div>
-      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
+      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="openViewWorkout(${w.id})">
         <div class="workout-entry-header">
           <div class="workout-entry-name">${w.name}</div>
           <div class="workout-meta">
@@ -1253,22 +1306,6 @@ function renderHistory() {
           <div class="exercise-chips">${chips}</div>
           <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text);opacity:0.6;">${formatDate(w.date)}</span>
         </div>
-        <div class="expanded-detail">
-          <div class="table-responsive">
-            <table class="exercise-table">
-              <thead>
-                <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-          ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
-          <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
-            <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
-            <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
-            <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
-          </div>
-        </div>
       </div>
     </div>`;
   }).join('');
@@ -1278,11 +1315,6 @@ function renderHistory() {
     const el = document.getElementById('we-' + w.id);
     if (el) attachSwipeDelete(el, w.id);
   });
-}
-
-function toggleEntry(id) {
-  const el = document.getElementById('we-' + id);
-  el?.classList.toggle('open');
 }
 
 function renderRecoveryHistory() {

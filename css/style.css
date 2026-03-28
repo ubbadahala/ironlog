@@ -1113,9 +1113,16 @@ input, select, textarea {
     grid-template-columns: 70px 70px 80px 36px 36px;
     gap: 8px;
     align-items: center;
-    margin-bottom: 22px; /* Increased from 6px to give deltas room */
+    margin-bottom: 6px; /* Default tight spacing */
+    transition: margin-bottom 0.2s ease;
     position: relative;
   }
+
+  /* Only expand when the JS detects history and adds the deltas */
+  .load-row.has-deltas {
+    margin-bottom: 22px; 
+  }
+
   .load-row input { margin-bottom: 0; padding: 10px; }
   .load-row:first-of-type { margin-top: 4px; }
 
@@ -1167,7 +1174,7 @@ input, select, textarea {
   @media (max-width: 600px) {
     .load-row { 
       grid-template-columns: 1fr 1fr 1fr 36px 36px; 
-      margin-bottom: 22px; /* Ensures deltas have room on phones too */
+      /* No need to redefine margins here, it inherits the logic above! */
     }
     .load-row-labels { grid-template-columns: 1fr 1fr 1fr 36px 36px; }
     .exercise-block-header { grid-template-columns: 1fr 28px; }
