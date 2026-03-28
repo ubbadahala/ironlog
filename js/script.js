@@ -3,28 +3,42 @@ let recoveryLogs = JSON.parse(localStorage.getItem('ironlog_recovery') || '[]');
 
 // ─── CUSTOM CONFIRM DIALOG ───────────────────────────────────────────────────
 let _confirmCallback = null;
+let _cancelCallback = null;
 
 function showConfirm({ icon = '', title, body, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel = null }) {
   document.getElementById('confirmIcon').textContent = icon;
   document.getElementById('confirmIcon').style.display = icon ? 'block' : 'none';
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmBody').textContent = body || '';
+  
   const okBtn = document.getElementById('confirmOk');
   okBtn.textContent = confirmLabel;
   okBtn.className = 'confirm-btn confirm-btn-ok' + (danger ? ' danger' : '');
+  
   _confirmCallback = onConfirm;
   _cancelCallback = onCancel;
-  okBtn.onclick = () => { dismissConfirm(); if (_confirmCallback) _confirmCallback(); };
+  
+  okBtn.onclick = () => { 
+    // Save the callback before wiping it
+    const cb = _confirmCallback; 
+    
+    // Wipe callbacks first so dismissConfirm doesn't accidentally cancel
+    _confirmCallback = null;
+    _cancelCallback = null;
+    
+    dismissConfirm(); 
+    if (cb) cb(); 
+  };
+  
   document.getElementById('confirmOverlay').classList.add('active');
 }
 
-let _cancelCallback = null;
-
 function dismissConfirm() {
   document.getElementById('confirmOverlay').classList.remove('active');
-  if (_cancelCallback) _cancelCallback();
+  const cb = _cancelCallback;
   _confirmCallback = null;
   _cancelCallback = null;
+  if (cb) cb();
 }
 
 // Close on overlay background click

@@ -1113,7 +1113,7 @@ input, select, textarea {
     grid-template-columns: 70px 70px 80px 36px 36px;
     gap: 8px;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 22px; /* Increased from 6px to give deltas room */
     position: relative;
   }
   .load-row input { margin-bottom: 0; padding: 10px; }
@@ -1165,7 +1165,10 @@ input, select, textarea {
   .btn-remove-block:hover { background: rgba(255,68,68,0.15); border-color: var(--red); }
 
   @media (max-width: 600px) {
-    .load-row { grid-template-columns: 1fr 1fr 1fr 36px 36px; }
+    .load-row { 
+      grid-template-columns: 1fr 1fr 1fr 36px 36px; 
+      margin-bottom: 22px; /* Ensures deltas have room on phones too */
+    }
     .load-row-labels { grid-template-columns: 1fr 1fr 1fr 36px 36px; }
     .exercise-block-header { grid-template-columns: 1fr 28px; }
     .exercise-block-header .muscle-select-wrap { display: none; } /* hidden on mobile, use block-level muscle */
