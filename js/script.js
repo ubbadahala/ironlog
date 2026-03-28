@@ -3,46 +3,28 @@ let recoveryLogs = JSON.parse(localStorage.getItem('ironlog_recovery') || '[]');
 
 // ─── CUSTOM CONFIRM DIALOG ───────────────────────────────────────────────────
 let _confirmCallback = null;
-let _cancelCallback = null;
 
 function showConfirm({ icon = '', title, body, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel = null }) {
   document.getElementById('confirmIcon').textContent = icon;
   document.getElementById('confirmIcon').style.display = icon ? 'block' : 'none';
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmBody').textContent = body || '';
-  
   const okBtn = document.getElementById('confirmOk');
   okBtn.textContent = confirmLabel;
   okBtn.className = 'confirm-btn confirm-btn-ok' + (danger ? ' danger' : '');
-  
   _confirmCallback = onConfirm;
   _cancelCallback = onCancel;
-  
-  okBtn.onclick = () => { 
-    // Save the callback before wiping it
-    const cb = _confirmCallback; 
-    
-    // Wipe callbacks first so dismissConfirm doesn't fire the cancel action
-    _confirmCallback = null;
-    _cancelCallback = null;
-    
-    dismissConfirm(); 
-    if (cb) cb(); 
-  };
-  
+  okBtn.onclick = () => { dismissConfirm(); if (_confirmCallback) _confirmCallback(); };
   document.getElementById('confirmOverlay').classList.add('active');
 }
 
+let _cancelCallback = null;
+
 function dismissConfirm() {
   document.getElementById('confirmOverlay').classList.remove('active');
-  
-  // Save the cancel callback before wiping
-  const cb = _cancelCallback;
-  
+  if (_cancelCallback) _cancelCallback();
   _confirmCallback = null;
   _cancelCallback = null;
-  
-  if (cb) cb();
 }
 
 // Close on overlay background click
@@ -51,9 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'confirmOverlay') dismissConfirm();
   });
 });
-
 let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
-let exerciseCount = 0;
 let chartInstance = null;
 let chartRange = '4w';
 let weeklyTarget = parseInt(localStorage.getItem('ironlog_weekly_target') || '0');
@@ -351,119 +331,255 @@ function renderNutritionInsights() {
   }).join('');
 }
 
-// ─── LOGGING EXERCISES (BLOCK LAYOUT) ─────────────────────────────────────────
-let exerciseBlockCount = 0;
+// ─── LOGGING EXERCISES (MULTI-LOAD) ──────────────────────────────────────────
+let blockCount = 0;
+let loadCount = 0;
 
-function addExerciseBlock() {
-  exerciseBlockCount++;
-  const id = exerciseBlockCount;
-  const div = document.createElement('div');
-  div.className = 'exercise-block glass-panel';
-  div.id = 'exBlock-' + id;
-  div.style.cssText = 'padding:14px; margin-bottom:16px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.2);';
-
+function addExerciseBlock(ex = {}) {
+  blockCount++;
+  const bid = blockCount;
   const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
-    .map(m => `<option value="${m}">${m || 'Muscle…'}</option>`).join('');
+    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
 
-  div.innerHTML = `
-    <div style="display:flex; gap:10px; margin-bottom:14px;">
-      <div class="name-wrapper" style="flex:1; position:relative;">
-        <input type="text" placeholder="Exercise Name" data-field="name" list="exercise-db" autocomplete="off" style="margin-bottom:0; width:100%; font-size:1.05rem;"
-               oninput="autoFillBlockMuscle(${id}, this.value)">
+  const block = document.createElement('div');
+  block.className = 'exercise-block';
+  block.id = 'exb-' + bid;
+  block.innerHTML = `
+    <div class="exercise-block-header">
+      <div class="name-wrapper" style="position:relative;">
+        <input type="text" placeholder="Exercise name" value="${ex.name || ''}"
+          data-block="${bid}" data-field="name" list="exercise-db" autocomplete="off"
+          oninput="onBlockNameInput(${bid}, this.value)">
+        <button class="history-peek-btn" onclick="peekHistoryBlock(${bid})">LOGS</button>
       </div>
-      <div class="muscle-select-wrap" style="width:115px;">
-        <select data-field="muscle" style="margin-bottom:0; font-size:0.78rem; padding:12px 8px;">
+      <div class="muscle-select-wrap">
+        <select data-block="${bid}" data-field="muscle" style="font-size:0.78rem;padding:10px 8px;"
+          onchange="onBlockMuscleChange(${bid})">
           ${muscleOptions}
         </select>
       </div>
-      <button class="btn-icon" onclick="this.closest('.exercise-block').remove()" style="margin:0; width:44px; height:44px;">✕</button>
+      <button class="btn-remove-block" onclick="removeExerciseBlock(${bid})" title="Remove exercise">✕</button>
     </div>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 42px 42px; gap:8px; margin-bottom:6px; padding:0 2px;">
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">SETS</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">REPS</span>
-      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">KG</span>
+    <div class="load-row-labels">
+      <span>Sets</span><span>Reps</span><span>Kg</span><span></span><span></span>
     </div>
-
-    <div class="sets-container" id="sets-${id}"></div>
-
-    <button class="btn-ghost" style="width:100%; padding:10px; font-size:0.75rem; margin-top:10px; border-style:dashed;" onclick="addSetRow(${id})">+ Add Load Entry</button>
+    <div class="load-rows" id="loads-${bid}"></div>
+    <button class="btn-add-load" onclick="addLoadRow(${bid})">+ Add load</button>
   `;
+  document.getElementById('exercisesList').appendChild(block);
 
-  document.getElementById('exercisesList').appendChild(div);
-  
-  // Create the first default set row
-  addSetRow(id, { sets: 1 }); 
+  // Add first load row (pre-filled if editing)
+  addLoadRow(bid, ex);
+
+  // Auto-fill muscle if known
+  if (ex.name) {
+    setTimeout(() => {
+      onBlockNameInput(bid, ex.name);
+      onBlockMuscleChange(bid);
+    }, 50);
+  }
 }
 
-function addSetRow(blockId, setData = { sets: '', reps: '', weight: '' }) {
-  const container = document.getElementById('sets-' + blockId);
-  const row = document.createElement('div');
-  row.className = 'set-row';
-  row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 1fr 42px 42px; gap:8px; margin-bottom:8px; align-items:start;';
+function addLoadRow(bid, ex = {}) {
+  loadCount++;
+  const lid = loadCount;
+  const container = document.getElementById('loads-' + bid);
+  if (!container) return;
 
+  const row = document.createElement('div');
+  row.className = 'load-row';
+  row.id = `load-${bid}-${lid}`;
   row.innerHTML = `
-    <div style="position:relative"><input type="number" placeholder="S" data-field="sets" value="${setData.sets}" style="margin-bottom:0; padding:10px;"></div>
-    <div style="position:relative"><input type="number" placeholder="R" data-field="reps" value="${setData.reps}" style="margin-bottom:0; padding:10px;"></div>
-    <div class="weight-wrapper" style="position:relative">
-      <input type="number" placeholder="Kg" data-field="weight" value="${setData.weight}" style="margin-bottom:0; padding:10px;">
+    <div style="position:relative">
+      <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
     </div>
-    <button class="btn-confirm" onclick="logSetRow(this)" title="Log set & rest" style="margin:0; width:100%; height:42px; border-radius:8px;">✓</button>
-    <button class="btn-icon" onclick="this.closest('.set-row').remove()" title="Remove load" style="margin:0; width:100%; height:42px;">✕</button>
+    <div style="position:relative">
+      <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}"
+        oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;">
+    </div>
+    <div class="weight-wrapper" style="position:relative">
+      <button class="predict-btn" onclick="predictLoadBlock(${bid},${lid})" style="font-size:0.7rem;">🪄</button>
+      <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
+        oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;padding-left:26px;">
+    </div>
+    <button class="btn-icon btn-confirm" style="margin-bottom:0;" onclick="logSetLoad(${bid},${lid})" title="Log set">✓</button>
+    <button class="btn-icon" style="margin-bottom:0;" onclick="removeLoadRow(${bid},${lid})" title="Remove load">✕</button>
   `;
   container.appendChild(row);
 }
 
-function autoFillBlockMuscle(id, value) {
-  const match = exercisesDB.find(ex => ex.name.toLowerCase() === value.trim().toLowerCase());
-  if (!match || !match.muscle) return;
-  const sel = document.querySelector(`#exBlock-${id} [data-field="muscle"]`);
-  if (sel && !sel.value) sel.value = match.muscle;
+function removeLoadRow(bid, lid) {
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  const container = document.getElementById('loads-' + bid);
+  // Don't remove if it's the only load row
+  if (container && container.querySelectorAll('.load-row').length <= 1) {
+    toast('Each exercise needs at least one load row.');
+    return;
+  }
+  if (row) row.remove();
 }
 
-function logSetRow(btnEl) {
-  const block = btnEl.closest('.exercise-block');
+function removeExerciseBlock(bid) {
+  const block = document.getElementById('exb-' + bid);
+  if (block) block.remove();
+}
+
+function onBlockNameInput(bid, value) {
+  // Auto-fill muscle if exercise is in DB and muscle not set
+  const val = value.trim().toLowerCase();
+  if (!val) return;
+  const match = exercisesDB.find(ex => ex.name.toLowerCase() === val);
+  if (!match || !match.muscle) return;
+  const sel = document.querySelector(`#exb-${bid} [data-field="muscle"]`);
+  if (sel && !sel.value) sel.value = match.muscle;
+  // Update deltas on all load rows
+  document.querySelectorAll(`#loads-${bid} .load-row`).forEach(row => {
+    const lid = row.id.split('-')[2];
+    updateDeltaLoad(bid, lid);
+  });
+}
+
+function onBlockMuscleChange(bid) {
+  // Just re-run delta so colour can update
+}
+
+function logSetLoad(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  if (!block) return;
   const name = block.querySelector('[data-field="name"]').value.trim();
-  const muscle = block.querySelector('[data-field="muscle"]').value;
+  const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
   if (name) triggerSmartTimer(name, muscle);
-  
-  // Set tracking badge
-  let badge = btnEl.querySelector('.set-counter');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'set-counter';
-    btnEl.style.position = 'relative';
-    btnEl.appendChild(badge);
-  }
-  badge.dataset.sets = parseInt(badge.dataset.sets || '0') + 1;
-  badge.textContent = `S${badge.dataset.sets}`;
-  
+  incrementSetCounterLoad(bid, lid);
   if (navigator.vibrate) navigator.vibrate(50);
   updateSessionVolume();
 }
 
-// 🔥 THIS IS THE BRIDGE: It flattens the UI blocks back into your original data array!
-function collectExercises() {
-  const exercises = [];
-  document.querySelectorAll('#exercisesList .exercise-block').forEach(block => {
-    const name = block.querySelector('[data-field="name"]').value.trim();
-    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
-    if (!name) return;
-
-    block.querySelectorAll('.set-row').forEach(row => {
-      const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
-      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
-      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
-      
-      // Only save rows that actually have data
-      if (sets > 0 || reps > 0 || weight > 0) {
-        exercises.push({ name, muscle, sets, reps, weight });
-      }
-    });
-  });
-  return exercises;
+function incrementSetCounterLoad(bid, lid) {
+  const btn = document.querySelector(`#load-${bid}-${lid} .btn-confirm`);
+  if (!btn) return;
+  let badge = btn.querySelector('.set-counter');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'set-counter';
+    btn.style.position = 'relative';
+    btn.appendChild(badge);
+  }
+  const current = parseInt(badge.dataset.sets || '0') + 1;
+  badge.dataset.sets = current;
+  badge.textContent = `S${current}`;
 }
 
+function updateDeltaLoad(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  if (!block || !row) return;
+
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+  const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+  if (!name || !workouts.length) return;
+
+  const recentWorkout = workouts.find(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
+  if (!recentWorkout) return;
+
+  const best = recentWorkout.exercises
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+
+  renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, reps - best.reps, 'r');
+  renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weight - best.weight, 'kg');
+}
+
+function predictLoadBlock(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  if (!block || !row) return;
+
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  if (!name) return toast('Enter exercise name first!');
+
+  const weightInput = row.querySelector('[data-field="weight"]');
+  const history = workouts
+    .flatMap(w => w.exercises.map(e => ({ ...e, date: w.date })))
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!history.length) return toast('No history found. Set your own baseline!');
+
+  const last = history[0];
+  let suggestion = last.weight;
+  let statusMsg = '', statusColor = 'var(--accent)';
+
+  const isStagnant = history.length >= 3 &&
+    history[0].weight === history[1].weight &&
+    history[1].weight === history[2].weight &&
+    history[0].reps <= history[1].reps;
+
+  if (isStagnant) {
+    suggestion = Math.floor((last.weight * 0.9) * 2) / 2;
+    statusMsg = `⚠️ Stagnation detected. Deloading to ${suggestion}kg.`;
+    statusColor = '#ffb347';
+  } else if (last.reps >= 8) {
+    const isLeg = last.muscle === 'Legs' ||
+      ['legs','quads','glutes','hamstrings','squat','leg press','calf'].some(m => name.toLowerCase().includes(m));
+    suggestion += isLeg ? 5 : 2.5;
+    statusMsg = `🔥 Target hit! Increasing to ${suggestion}kg.`;
+    statusColor = 'var(--green)';
+  } else {
+    statusMsg = `Stay at ${suggestion}kg, aim for 8+ reps.`;
+    statusColor = 'var(--muted)';
+  }
+
+  weightInput.value = suggestion;
+  updateDeltaLoad(bid, lid);
+  weightInput.animate([
+    { boxShadow: `0 0 20px ${statusColor}`, transform: 'scale(1.05)' },
+    { boxShadow: 'none', transform: 'scale(1)' }
+  ], { duration: 500, easing: 'ease-out' });
+  toast(statusMsg);
+}
+
+function peekHistoryBlock(bid) {
+  document.querySelectorAll('.peek-popover').forEach(p => p.remove());
+  const block = document.getElementById('exb-' + bid);
+  if (!block) return;
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  if (!name) return toast('Enter an exercise name first');
+
+  const history = workouts
+    .filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()))
+    .slice(0, 5)
+    .map(w => {
+      const best = w.exercises
+        .filter(e => e.name.toLowerCase() === name.toLowerCase())
+        .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+      return { date: w.date, sets: best.sets, reps: best.reps, weight: best.weight };
+    });
+
+  const popover = document.createElement('div');
+  popover.className = 'peek-popover';
+
+  if (!history.length) {
+    popover.innerHTML = `<div class="peek-popover-title">${name}</div><div class="peek-popover-empty">No history yet</div>`;
+  } else {
+    const prWeight = Math.max(...history.map(h => h.weight));
+    popover.innerHTML = `
+      <div class="peek-popover-title">Last ${history.length} · ${name}</div>
+      <table>
+        ${history.map(h => `<tr${h.weight === prWeight ? ' style="color:var(--accent)"' : ''}>
+          <td>${formatDate(h.date)}</td>
+          <td>${h.sets}×${h.reps} @ <strong style="color:var(--accent)">${h.weight}kg</strong>${h.weight === prWeight ? ' 🏆' : ''}</td>
+        </tr>`).join('')}
+      </table>`;
+  }
+
+  const closeHandler = (e) => { if (!popover.contains(e.target)) { popover.remove(); document.removeEventListener('click', closeHandler, true); } };
+  setTimeout(() => document.addEventListener('click', closeHandler, true), 0);
+
+  const wrapper = block.querySelector('.name-wrapper');
+  wrapper.style.position = 'relative';
+  wrapper.appendChild(popover);
+}
 // Cancel a running session without saving
 function cancelSession() {
   showConfirm({
@@ -531,9 +647,25 @@ function peekHistory(id) {
   wrapper.appendChild(popover);
 }
 
-function removeExercise(id) {
-  const el = document.getElementById('ex-' + id);
-  if (el) el.remove();
+function collectExercises() {
+  // Read all exercise blocks; each block can have multiple load rows
+  const blocks = document.querySelectorAll('.exercise-block');
+  const result = [];
+  blocks.forEach(block => {
+    const name = block.querySelector('[data-field="name"]').value.trim();
+    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+    if (!name) return;
+    block.querySelectorAll('.load-row').forEach(row => {
+      result.push({
+        name,
+        muscle,
+        sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
+        reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
+        weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
+      });
+    });
+  });
+  return result.filter(e => e.name);
 }
 
 // ─── RECOVERY & NUTRITION TRACKING ────────────────────────────────────────────
@@ -682,7 +814,7 @@ function saveWorkout(durationMins) {
   document.getElementById('wName').value = '';
   document.getElementById('wNotes').value = '';
   document.getElementById('exercisesList').innerHTML = '';
-  exerciseCount = 0;
+  blockCount = 0; loadCount = 0;
   addExerciseBlock();
 }
 
@@ -783,110 +915,8 @@ function triggerConfetti() {
   }
 }
 
-// ─── PREDICT LOAD ────────────────────────────────────────────────────────
-
-function predictLoad(id) {
-  const row = document.getElementById('ex-' + id);
-  if (!row) return;
-
-  const nameInput = row.querySelector('[data-field="name"]');
-  const weightInput = row.querySelector('[data-field="weight"]');
-  const name = nameInput.value.trim();
-
-  if (!name) return toast("Enter exercise name first!");
-
-  // 1. DATA ACQUISITION: Fetch History (Newest to Oldest)
-  const history = workouts
-    .flatMap(w => w.exercises.map(e => ({ ...e, date: w.date })))
-    .filter(e => e.name.toLowerCase() === name.toLowerCase())
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  if (history.length === 0) return toast("No history found. Set your own baseline!");
-
-  const last = history[0];
-  let suggestion = last.weight;
-  let statusMsg = "";
-  let statusColor = "var(--accent)";
-
-  // 2. STAGNATION LOGIC: Check for "Failed 3x" (Fatigue Detection)
-  const isStagnant = history.length >= 3 && 
-                     history[0].weight === history[1].weight && 
-                     history[1].weight === history[2].weight &&
-                     history[0].reps <= history[1].reps;
-
-  if (isStagnant) {
-    // Deload Triggered: -10% rounded to nearest 0.5kg
-    suggestion = Math.floor((last.weight * 0.9) * 2) / 2; 
-    statusMsg = `⚠️ Stagnation detected. Deloading to ${suggestion}kg.`;
-    statusColor = "#ffb347"; // Warning Orange
-  } 
-  
-  // 3. PERFORMANCE LOGIC: Overload vs Volume Focus
-  else {
-    // We use 8 reps as the "Success Threshold" setpoint
-    const target = 8; 
-    
-    if (last.reps >= target) {
-      // Overload: +5kg for Legs (by muscle tag or name keyword), +2.5kg for everything else
-      const isLowerBody = last.muscle === 'Legs' ||
-        ['legs', 'quads', 'glutes', 'hamstrings', 'squat', 'leg press', 'calf'].some(m =>
-          name.toLowerCase().includes(m)
-        );
-      const increment = isLowerBody ? 5 : 2.5;
-      
-      suggestion += increment;
-      statusMsg = `🔥 Target hit (${last.reps} reps)! Increasing to ${suggestion}kg.`;
-      statusColor = "var(--green)";
-    } 
-    else {
-      // Volume Focus: Stay at same weight, try to increase reps
-      statusMsg = `Focus on volume. Stay at ${suggestion}kg and aim for 8+ reps.`;
-      statusColor = "var(--muted)";
-    }
-  }
-
-  // 4. ACTUATION: Update the UI and trigger secondary systems
-  weightInput.value = suggestion;
-
-  // Manually trigger the "Smart" side-effects
-  if (typeof updateDelta === 'function') updateDelta(id);
-
-  // 5. VISUAL FEEDBACK: HMI-style Glow
-  weightInput.animate([
-    { boxShadow: `0 0 20px ${statusColor}`, transform: 'scale(1.05)' },
-    { boxShadow: 'none', transform: 'scale(1)' }
-  ], { duration: 500, easing: 'ease-out' });
-
-  toast(statusMsg);
-}
-
-// ─── LIVE DIFFERENCE ────────────────────────────────────────────────────────
-
-function updateDelta(id) {
-  const row = document.getElementById('ex-' + id);
-  if (!row) return;
-  
-  const name = row.querySelector('[data-field="name"]').value.trim();
-  const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
-  const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
-
-  if (!name || workouts.length === 0) return;
-
-  // Find the most recent workout that contains this exercise
-  const recentWorkout = workouts.find(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
-  if (!recentWorkout) return;
-
-  // From that workout, pick the set with the highest volume (sets × reps × weight)
-  const best = recentWorkout.exercises
-    .filter(e => e.name.toLowerCase() === name.toLowerCase())
-    .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
-
-  const repDelta = reps - best.reps;
-  const weightDelta = weight - best.weight;
-
-  renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, repDelta, 'r');
-  renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weightDelta, 'kg');
-}
+// ─── LIVE DIFFERENCE (handled per load row via updateDeltaLoad) ──────────────
+function updateDelta(id) { /* no-op: use updateDeltaLoad for new block system */ }
 
 function renderDeltaLabel(parent, val, unit) {
   let el = parent.querySelector('.delta-box');
@@ -998,72 +1028,6 @@ function renderRadarChart() {
       }
     }
   });
-}
-
-// ── OPEN WORKOUT VIEW MODAL ──
-function openViewWorkout(id) {
-  const w = workouts.find(x => x.id === id);
-  if (!w) return;
-
-  const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
-
-  document.getElementById('viewWName').textContent = w.name;
-  document.getElementById('viewWDate').textContent = formatDate(w.date);
-  document.getElementById('viewWDuration').textContent = w.duration || '0';
-  document.getElementById('viewWVolume').textContent = Math.round(vol).toLocaleString();
-
-  // Populate the table
-  // Group the flat exercises back together by Name + Muscle
-  const grouped = {};
-  w.exercises.forEach(e => {
-    const key = e.name.toLowerCase();
-    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, setsData: [] };
-    grouped[key].setsData.push({ s: e.sets, r: e.reps, w: e.weight });
-  });
-
-  const tbody = document.getElementById('viewWExercises');
-  tbody.innerHTML = Object.values(grouped).map(group => {
-    const totalVol = group.setsData.reduce((a, e) => a + (e.s * e.r * e.w), 0);
-    const max1RM = Math.max(...group.setsData.map(e => calculate1RM(e.w, e.r)));
-    
-    // Stack the load entries visually using <br> tags
-    const setsHtml = group.setsData.map(e => e.s).join('<br>');
-    const repsHtml = group.setsData.map(e => e.r).join('<br>');
-    const weightHtml = group.setsData.map(e => e.w).join('<br>');
-
-    return `
-      <tr>
-        <td style="vertical-align:top; padding-top:10px;">${group.name}</td>
-        <td style="color:var(--muted);font-size:0.72rem; vertical-align:top; padding-top:10px;">${group.muscle || '—'}</td>
-        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${setsHtml}</td>
-        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${repsHtml}</td>
-        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${weightHtml}</td>
-        <td style="vertical-align:top; padding-top:10px;">${Math.round(totalVol)}</td>
-        <td style="color: var(--accent); font-weight: 500; vertical-align:top; padding-top:10px;">${Math.round(max1RM)}</td>
-      </tr>`;
-  }).join('');
-
-  // Handle Notes
-  const notesContainer = document.getElementById('viewWNotesContainer');
-  if (w.notes) {
-    document.getElementById('viewWNotes').textContent = w.notes;
-    notesContainer.style.display = 'block';
-  } else {
-    notesContainer.style.display = 'none';
-  }
-
-  // Wire up the action buttons inside the modal
-  document.getElementById('viewBtnEdit').onclick = () => { 
-    closeModal('viewWorkoutModal'); 
-    openEditWorkout(w.id); 
-  };
-  document.getElementById('viewBtnShare').onclick = () => shareWorkout(w.id);
-  document.getElementById('viewBtnDelete').onclick = () => { 
-    closeModal('viewWorkoutModal'); 
-    deleteWorkout(w.id); 
-  };
-
-  openModal('viewWorkoutModal');
 }
 
 // ─── EDIT MODAL HELPERS ──────────────────────────────────────────────────────
@@ -1261,7 +1225,7 @@ function renderHistory() {
     return `
     <div class="workout-entry-wrap">
       <div class="swipe-delete-bg">Delete ✕</div>
-      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="openViewWorkout(${w.id})">
+      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
         <div class="workout-entry-header">
           <div class="workout-entry-name">${w.name}</div>
           <div class="workout-meta">
@@ -1274,6 +1238,22 @@ function renderHistory() {
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div class="exercise-chips">${chips}</div>
           <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text);opacity:0.6;">${formatDate(w.date)}</span>
+        </div>
+        <div class="expanded-detail">
+          <div class="table-responsive">
+            <table class="exercise-table">
+              <thead>
+                <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
+          <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
+            <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
+            <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
+            <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1962,21 +1942,8 @@ function updateSessionVolume() {
   el.textContent = `${Math.round(vol).toLocaleString()} kg`;
 }
 
-// ─── #3 SET COUNTER ───────────────────────────────────────────────────────────
-function incrementSetCounter(id) {
-  const btn = document.querySelector(`#ex-${id} .btn-confirm`);
-  if (!btn) return;
-  let badge = btn.querySelector('.set-counter');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'set-counter';
-    btn.style.position = 'relative';
-    btn.appendChild(badge);
-  }
-  const current = parseInt(badge.dataset.sets || '0') + 1;
-  badge.dataset.sets = current;
-  badge.textContent = `S${current}`;
-}
+// ─── #3 SET COUNTER (handled per load row via incrementSetCounterLoad) ────────
+function incrementSetCounter(id) { /* no-op: use incrementSetCounterLoad for new block system */ }
 
 // ─── #4 STRENGTH OVER TIME CHART ─────────────────────────────────────────────
 function populateStrengthPicker() {
