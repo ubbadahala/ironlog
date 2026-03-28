@@ -520,13 +520,13 @@ input, select, textarea {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 28px;
+    margin-bottom: 12px;   /* Reduced from 28px to pull the next section closer */
     
     /* ── NEW SCROLL SETTINGS ── */
-    max-height: 380px;     /* Restricts the height */
-    overflow-y: auto;      /* Enables vertical scrolling */
-    padding-right: 8px;    /* Adds a little breathing room for the scrollbar */
-    padding-bottom: 8px;   /* Prevents the bottom card's shadow from being cut off */
+    max-height: 380px;     
+    overflow-y: auto;      
+    padding-right: 8px;    
+    padding-bottom: 16px;  /* Added a bit more internal padding so the shadow isn't cut off */
   }
   
   /* Optional: Make the scrollbar look sleek and match the glass theme */
