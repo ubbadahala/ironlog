@@ -351,85 +351,117 @@ function renderNutritionInsights() {
   }).join('');
 }
 
-// ─── LOGGING EXERCISES ────────────────────────────────────────────────────────
-function addExerciseRow(ex = {}) {
-  exerciseCount++;
-  const id = exerciseCount;
-  const row = document.createElement('div');
-  row.className = 'exercise-item';
-  row.id = 'ex-' + id;
+// ─── LOGGING EXERCISES (BLOCK LAYOUT) ─────────────────────────────────────────
+let exerciseBlockCount = 0;
+
+function addExerciseBlock() {
+  exerciseBlockCount++;
+  const id = exerciseBlockCount;
+  const div = document.createElement('div');
+  div.className = 'exercise-block glass-panel';
+  div.id = 'exBlock-' + id;
+  div.style.cssText = 'padding:14px; margin-bottom:16px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.2);';
 
   const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
-    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
+    .map(m => `<option value="${m}">${m || 'Muscle…'}</option>`).join('');
 
-  row.innerHTML = `
-    <div class="name-wrapper">
-       <input type="text" placeholder="Exercise" value="${ex.name || ''}" 
-              data-field="name" list="exercise-db" autocomplete="off"
-              oninput="updateDelta(${id}); autoFillExerciseMuscle(${id}, this.value); checkMuscleTag(${id})">
-       <button class="history-peek-btn" onclick="peekHistory(${id})">LOGS</button>
+  div.innerHTML = `
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <div class="name-wrapper" style="flex:1; position:relative;">
+        <input type="text" placeholder="Exercise Name" data-field="name" list="exercise-db" autocomplete="off" style="margin-bottom:0; width:100%; font-size:1.05rem;"
+               oninput="autoFillBlockMuscle(${id}, this.value)">
+      </div>
+      <div class="muscle-select-wrap" style="width:115px;">
+        <select data-field="muscle" style="margin-bottom:0; font-size:0.78rem; padding:12px 8px;">
+          ${muscleOptions}
+        </select>
+      </div>
+      <button class="btn-icon" onclick="this.closest('.exercise-block').remove()" style="margin:0; width:44px; height:44px;">✕</button>
     </div>
 
-    <div class="muscle-select-wrap">
-      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;"
-        onchange="checkMuscleTag(${id}); autoFillExerciseMuscle(${id}, document.querySelector('#ex-${id} [data-field=name]').value)">
-        ${muscleOptions}
-      </select>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 42px 42px; gap:8px; margin-bottom:6px; padding:0 2px;">
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">SETS</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">REPS</span>
+      <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;">KG</span>
     </div>
 
-    <div style="position:relative">
-       <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
-    </div>
+    <div class="sets-container" id="sets-${id}"></div>
 
-    <div style="position:relative">
-       <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}" 
-              oninput="updateDelta(${id})">
-    </div>
-
-    <div class="weight-wrapper" style="position:relative">
-       <button class="predict-btn" onclick="predictLoad(${id})">🪄</button>
-       <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" 
-              oninput="updateDelta(${id})">
-    </div>
-
-    <button class="btn-icon btn-confirm" onclick="logSet(${id})" title="Log set & start rest timer">✓</button>
-    <button class="btn-icon" onclick="removeExercise(${id})" title="Remove exercise">✕</button>
+    <button class="btn-ghost" style="width:100%; padding:10px; font-size:0.75rem; margin-top:10px; border-style:dashed;" onclick="addSetRow(${id})">+ Add Load Entry</button>
   `;
 
-  document.getElementById('exercisesList').appendChild(row);
-  if (ex.name) setTimeout(() => { updateDelta(id); checkMuscleTag(id); }, 50);
+  document.getElementById('exercisesList').appendChild(div);
+  
+  // Create the first default set row
+  addSetRow(id, { sets: 1 }); 
 }
 
-function autoFillExerciseMuscle(id, value) {
-  const val = value.trim().toLowerCase();
-  if (!val) return;
-  const match = exercisesDB.find(ex => ex.name.toLowerCase() === val);
+function addSetRow(blockId, setData = { sets: '', reps: '', weight: '' }) {
+  const container = document.getElementById('sets-' + blockId);
+  const row = document.createElement('div');
+  row.className = 'set-row';
+  row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 1fr 42px 42px; gap:8px; margin-bottom:8px; align-items:start;';
+
+  row.innerHTML = `
+    <div style="position:relative"><input type="number" placeholder="S" data-field="sets" value="${setData.sets}" style="margin-bottom:0; padding:10px;"></div>
+    <div style="position:relative"><input type="number" placeholder="R" data-field="reps" value="${setData.reps}" style="margin-bottom:0; padding:10px;"></div>
+    <div class="weight-wrapper" style="position:relative">
+      <input type="number" placeholder="Kg" data-field="weight" value="${setData.weight}" style="margin-bottom:0; padding:10px;">
+    </div>
+    <button class="btn-confirm" onclick="logSetRow(this)" title="Log set & rest" style="margin:0; width:100%; height:42px; border-radius:8px;">✓</button>
+    <button class="btn-icon" onclick="this.closest('.set-row').remove()" title="Remove load" style="margin:0; width:100%; height:42px;">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function autoFillBlockMuscle(id, value) {
+  const match = exercisesDB.find(ex => ex.name.toLowerCase() === value.trim().toLowerCase());
   if (!match || !match.muscle) return;
-  const row = document.getElementById('ex-' + id);
-  if (!row) return;
-  const sel = row.querySelector('[data-field="muscle"]');
-  if (sel && !sel.value) { sel.value = match.muscle; checkMuscleTag(id); }
+  const sel = document.querySelector(`#exBlock-${id} [data-field="muscle"]`);
+  if (sel && !sel.value) sel.value = match.muscle;
 }
 
-function checkMuscleTag(id) {
-  const row = document.getElementById('ex-' + id);
-  if (!row) return;
-  const name = row.querySelector('[data-field="name"]').value.trim();
-  const muscle = row.querySelector('[data-field="muscle"]')?.value || '';
-  if (name && !muscle) row.classList.add('no-muscle');
-  else row.classList.remove('no-muscle');
-}
-
-// Called when the ✓ button is clicked — triggers rest timer, set counter, haptic
-function logSet(id) {
-  const row = document.getElementById('ex-' + id);
-  if (!row) return;
-  const name = row.querySelector('[data-field="name"]').value.trim();
-  const muscle = row.querySelector('[data-field="muscle"]')?.value || '';
+function logSetRow(btnEl) {
+  const block = btnEl.closest('.exercise-block');
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  const muscle = block.querySelector('[data-field="muscle"]').value;
   if (name) triggerSmartTimer(name, muscle);
-  incrementSetCounter(id);
-  if (navigator.vibrate) navigator.vibrate(50); // #11 haptic
-  updateSessionVolume(); // #2 live vol
+  
+  // Set tracking badge
+  let badge = btnEl.querySelector('.set-counter');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'set-counter';
+    btnEl.style.position = 'relative';
+    btnEl.appendChild(badge);
+  }
+  badge.dataset.sets = parseInt(badge.dataset.sets || '0') + 1;
+  badge.textContent = `S${badge.dataset.sets}`;
+  
+  if (navigator.vibrate) navigator.vibrate(50);
+  updateSessionVolume();
+}
+
+// 🔥 THIS IS THE BRIDGE: It flattens the UI blocks back into your original data array!
+function collectExercises() {
+  const exercises = [];
+  document.querySelectorAll('#exercisesList .exercise-block').forEach(block => {
+    const name = block.querySelector('[data-field="name"]').value.trim();
+    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+    if (!name) return;
+
+    block.querySelectorAll('.set-row').forEach(row => {
+      const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
+      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
+      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+      
+      // Only save rows that actually have data
+      if (sets > 0 || reps > 0 || weight > 0) {
+        exercises.push({ name, muscle, sets, reps, weight });
+      }
+    });
+  });
+  return exercises;
 }
 
 // Cancel a running session without saving
@@ -502,17 +534,6 @@ function peekHistory(id) {
 function removeExercise(id) {
   const el = document.getElementById('ex-' + id);
   if (el) el.remove();
-}
-
-function collectExercises() {
-  const rows = document.querySelectorAll('.exercise-item');
-  return Array.from(rows).map(row => ({
-    name: row.querySelector('[data-field="name"]').value.trim(),
-    muscle: row.querySelector('[data-field="muscle"]')?.value || '',
-    sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
-    reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
-    weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
-  })).filter(e => e.name);
 }
 
 // ─── RECOVERY & NUTRITION TRACKING ────────────────────────────────────────────
@@ -992,19 +1013,34 @@ function openViewWorkout(id) {
   document.getElementById('viewWVolume').textContent = Math.round(vol).toLocaleString();
 
   // Populate the table
+  // Group the flat exercises back together by Name + Muscle
+  const grouped = {};
+  w.exercises.forEach(e => {
+    const key = e.name.toLowerCase();
+    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, setsData: [] };
+    grouped[key].setsData.push({ s: e.sets, r: e.reps, w: e.weight });
+  });
+
   const tbody = document.getElementById('viewWExercises');
-  tbody.innerHTML = w.exercises.map(e => {
-    const oneRM = calculate1RM(e.weight, e.reps);
+  tbody.innerHTML = Object.values(grouped).map(group => {
+    const totalVol = group.setsData.reduce((a, e) => a + (e.s * e.r * e.w), 0);
+    const max1RM = Math.max(...group.setsData.map(e => calculate1RM(e.w, e.r)));
+    
+    // Stack the load entries visually using <br> tags
+    const setsHtml = group.setsData.map(e => e.s).join('<br>');
+    const repsHtml = group.setsData.map(e => e.r).join('<br>');
+    const weightHtml = group.setsData.map(e => e.w).join('<br>');
+
     return `
-    <tr>
-      <td>${e.name}</td>
-      <td style="color:var(--muted);font-size:0.72rem;">${e.muscle || '—'}</td>
-      <td>${e.sets}</td>
-      <td>${e.reps}</td>
-      <td>${e.weight}</td>
-      <td>${Math.round(e.sets * e.reps * e.weight)}</td>
-      <td style="color: var(--accent); font-weight: 500;">${Math.round(oneRM)}</td>
-    </tr>`;
+      <tr>
+        <td style="vertical-align:top; padding-top:10px;">${group.name}</td>
+        <td style="color:var(--muted);font-size:0.72rem; vertical-align:top; padding-top:10px;">${group.muscle || '—'}</td>
+        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${setsHtml}</td>
+        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${repsHtml}</td>
+        <td style="vertical-align:top; padding-top:10px; line-height:1.5;">${weightHtml}</td>
+        <td style="vertical-align:top; padding-top:10px;">${Math.round(totalVol)}</td>
+        <td style="color: var(--accent); font-weight: 500; vertical-align:top; padding-top:10px;">${Math.round(max1RM)}</td>
+      </tr>`;
   }).join('');
 
   // Handle Notes
