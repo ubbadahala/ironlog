@@ -88,6 +88,10 @@
         </div>
       </div>
 
+      <!-- Start / End session button -->
+      <button class="btn-start-session" id="sessionToggleBtn" onclick="toggleSession()">▶ Start Session</button>
+      <button class="btn btn-ghost" id="restDayBtn" onclick="logRestDay()" style="width:100%;margin-top:-12px;font-size:0.75rem;padding:10px;">🛌 Log Rest Day</button>
+      
       <div>
         <label>Workout Name</label>
         <input type="text" id="wName" placeholder="e.g. Push Day, Leg Day…" list="workout-name-db" autocomplete="off">
@@ -106,10 +110,6 @@
         <label>Notes</label>
         <textarea id="wNotes" placeholder="How did it feel? Any PRs?"></textarea>
       </div>
-
-      <!-- Start / End session button -->
-      <button class="btn-start-session" id="sessionToggleBtn" onclick="toggleSession()">▶ Start Session</button>
-      <button class="btn btn-ghost" id="restDayBtn" onclick="logRestDay()" style="width:100%;margin-top:-12px;font-size:0.75rem;padding:10px;">🛌 Log Rest Day</button>
     </div>
 
     <div class="card glass-panel" style="border-color: rgba(68, 255, 136, 0.2);">

@@ -521,6 +521,28 @@ input, select, textarea {
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-bottom: 28px;
+    
+    /* ── NEW SCROLL SETTINGS ── */
+    max-height: 380px;     /* Restricts the height */
+    overflow-y: auto;      /* Enables vertical scrolling */
+    padding-right: 8px;    /* Adds a little breathing room for the scrollbar */
+    padding-bottom: 8px;   /* Prevents the bottom card's shadow from being cut off */
+  }
+  
+  /* Optional: Make the scrollbar look sleek and match the glass theme */
+  .pr-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .pr-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+  }
+  .pr-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+  .pr-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(232, 255, 71, 0.4); /* Glows with your accent color on hover */
   }
 
   .pr-card {
