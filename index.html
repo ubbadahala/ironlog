@@ -384,6 +384,39 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="viewWorkoutModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="viewWName">Workout Details</div>
+      <button class="modal-close" onclick="closeModal('viewWorkoutModal')">✕</button>
+    </div>
+    
+    <div style="margin-bottom: 16px; font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--muted);">
+      <span id="viewWDate"></span> • <span id="viewWDuration"></span> min • <span id="viewWVolume"></span> kg
+    </div>
+
+    <div class="table-responsive">
+      <table class="exercise-table" style="width: 100%; margin-bottom: 20px;">
+        <thead>
+          <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
+        </thead>
+        <tbody id="viewWExercises"></tbody>
+      </table>
+    </div>
+
+    <div id="viewWNotesContainer" style="display: none; margin-bottom: 20px;">
+      <label>Notes</label>
+      <p id="viewWNotes" style="font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;"></p>
+    </div>
+
+    <div style="display:flex; gap:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
+      <button class="btn-share" id="viewBtnEdit">✏️ Edit</button>
+      <button class="btn-share" id="viewBtnShare">📸 Save as Image</button>
+      <button class="delete-workout" id="viewBtnDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── EDIT WORKOUT MODAL ── -->
 <div class="modal-overlay" id="editWorkoutModal">
   <div class="modal">

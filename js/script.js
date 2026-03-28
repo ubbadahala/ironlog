@@ -979,6 +979,57 @@ function renderRadarChart() {
   });
 }
 
+// ── OPEN WORKOUT VIEW MODAL ──
+function openViewWorkout(id) {
+  const w = workouts.find(x => x.id === id);
+  if (!w) return;
+
+  const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+
+  document.getElementById('viewWName').textContent = w.name;
+  document.getElementById('viewWDate').textContent = formatDate(w.date);
+  document.getElementById('viewWDuration').textContent = w.duration || '0';
+  document.getElementById('viewWVolume').textContent = Math.round(vol).toLocaleString();
+
+  // Populate the table
+  const tbody = document.getElementById('viewWExercises');
+  tbody.innerHTML = w.exercises.map(e => {
+    const oneRM = calculate1RM(e.weight, e.reps);
+    return `
+    <tr>
+      <td>${e.name}</td>
+      <td style="color:var(--muted);font-size:0.72rem;">${e.muscle || '—'}</td>
+      <td>${e.sets}</td>
+      <td>${e.reps}</td>
+      <td>${e.weight}</td>
+      <td>${Math.round(e.sets * e.reps * e.weight)}</td>
+      <td style="color: var(--accent); font-weight: 500;">${Math.round(oneRM)}</td>
+    </tr>`;
+  }).join('');
+
+  // Handle Notes
+  const notesContainer = document.getElementById('viewWNotesContainer');
+  if (w.notes) {
+    document.getElementById('viewWNotes').textContent = w.notes;
+    notesContainer.style.display = 'block';
+  } else {
+    notesContainer.style.display = 'none';
+  }
+
+  // Wire up the action buttons inside the modal
+  document.getElementById('viewBtnEdit').onclick = () => { 
+    closeModal('viewWorkoutModal'); 
+    openEditWorkout(w.id); 
+  };
+  document.getElementById('viewBtnShare').onclick = () => shareWorkout(w.id);
+  document.getElementById('viewBtnDelete').onclick = () => { 
+    closeModal('viewWorkoutModal'); 
+    deleteWorkout(w.id); 
+  };
+
+  openModal('viewWorkoutModal');
+}
+
 // ─── EDIT MODAL HELPERS ──────────────────────────────────────────────────────
 let editingWorkoutId = null;
 let editExerciseCount = 0;
@@ -1174,7 +1225,7 @@ function renderHistory() {
     return `
     <div class="workout-entry-wrap">
       <div class="swipe-delete-bg">Delete ✕</div>
-      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="toggleEntry(${w.id})">
+      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="openViewWorkout(${w.id})">
         <div class="workout-entry-header">
           <div class="workout-entry-name">${w.name}</div>
           <div class="workout-meta">
@@ -1187,22 +1238,6 @@ function renderHistory() {
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div class="exercise-chips">${chips}</div>
           <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text);opacity:0.6;">${formatDate(w.date)}</span>
-        </div>
-        <div class="expanded-detail">
-          <div class="table-responsive">
-            <table class="exercise-table">
-              <thead>
-                <tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Wt</th><th>Vol</th><th>1RM</th></tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-          ${w.notes ? `<p style="margin-top:16px;font-size:0.85rem;color:var(--text);opacity:0.8;font-style:italic;">"${w.notes}"</p>` : ''}
-          <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
-            <button class="btn-share" onclick="event.stopPropagation(); openEditWorkout(${w.id})">✏️ Edit</button>
-            <button class="btn-share" onclick="event.stopPropagation(); shareWorkout(${w.id})">📸 Save as Image</button>
-            <button class="delete-workout" onclick="event.stopPropagation(); deleteWorkout(${w.id})">Delete</button>
-          </div>
         </div>
       </div>
     </div>`;
