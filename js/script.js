@@ -1130,6 +1130,10 @@ document.addEventListener('click', e => {
 });
 
 // ── OPEN WORKOUT EDIT ──
+// ── OPEN WORKOUT EDIT ──
+let editBlockCount = 0;
+let editLoadCount = 0;
+
 function openEditWorkout(id) {
   const w = workouts.find(x => x.id === id);
   if (!w) return;
@@ -1140,36 +1144,80 @@ function openEditWorkout(id) {
   document.getElementById('editWDuration').value = w.duration || '';
   document.getElementById('editWNotes').value = w.notes || '';
 
-  // Populate exercises (each carries its own muscle)
   const list = document.getElementById('editExercisesList');
   list.innerHTML = '';
-  editExerciseCount = 0;
-  w.exercises.forEach(ex => addEditExerciseRow(ex));
+  editBlockCount = 0;
+  editLoadCount = 0;
+
+  // Group flat data into blocks for the UI
+  const grouped = {};
+  w.exercises.forEach(e => {
+    const key = e.name.toLowerCase();
+    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, loads: [] };
+    grouped[key].loads.push({ sets: e.sets, reps: e.reps, weight: e.weight });
+  });
+
+  Object.values(grouped).forEach(group => addEditExerciseBlock(group));
 
   openModal('editWorkoutModal');
 }
 
-function addEditExerciseRow(ex = {}) {
-  editExerciseCount++;
-  const id = editExerciseCount;
-  const row = document.createElement('div');
-  row.className = 'exercise-item';
-  row.id = 'editex-' + id;
+function addEditExerciseBlock(group = {}) {
+  editBlockCount++;
+  const bid = editBlockCount;
   const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
-    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
-  row.innerHTML = `
-    <div class="name-wrapper">
-      <input type="text" placeholder="Exercise" value="${ex.name || ''}" data-field="name" list="exercise-db" autocomplete="off">
+    .map(m => `<option value="${m}" ${(group.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
+
+  const block = document.createElement('div');
+  block.className = 'exercise-block';
+  block.id = 'edit-exb-' + bid;
+  block.innerHTML = `
+    <div class="exercise-block-header">
+      <div class="name-wrapper" style="position:relative;">
+        <input type="text" placeholder="Exercise name" value="${group.name || ''}"
+          data-field="name" list="exercise-db" autocomplete="off" style="margin-bottom:0;">
+      </div>
+      <div class="muscle-select-wrap">
+        <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;margin-bottom:0;">
+          ${muscleOptions}
+        </select>
+      </div>
+      <button class="btn-remove-block" onclick="document.getElementById('edit-exb-${bid}').remove()" title="Remove block">✕</button>
     </div>
-    <div class="muscle-select-wrap">
-      <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;">${muscleOptions}</select>
+    <div class="load-row-labels">
+      <span>Sets</span><span>Reps</span><span>Kg</span><span></span><span></span>
     </div>
-    <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}">
-    <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}">
-    <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5">
-    <button class="btn-icon" onclick="document.getElementById('editex-${id}').remove()" title="Remove">✕</button>
+    <div class="load-rows" id="edit-loads-${bid}"></div>
+    <button class="btn-add-load" onclick="addEditLoadRow(${bid})">+ Add load</button>
   `;
-  document.getElementById('editExercisesList').appendChild(row);
+  document.getElementById('editExercisesList').appendChild(block);
+
+  if (group.loads && group.loads.length > 0) {
+    group.loads.forEach(load => addEditLoadRow(bid, load));
+  } else {
+    addEditLoadRow(bid, {}); // Initialize empty row for new block
+  }
+}
+
+function addEditLoadRow(bid, loadData = {}) {
+  editLoadCount++;
+  const lid = editLoadCount;
+  const container = document.getElementById('edit-loads-' + bid);
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'load-row';
+  row.id = `edit-load-${bid}-${lid}`;
+  
+  // We use an empty div as a spacer so the "✕" button sits cleanly on the right
+  row.innerHTML = `
+    <div><input type="number" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
+    <div></div> 
+    <button class="btn-icon" style="margin-bottom:0;" onclick="document.getElementById('edit-load-${bid}-${lid}').remove()" title="Remove load">✕</button>
+  `;
+  container.appendChild(row);
 }
 
 function saveEditedWorkout() {
@@ -1177,15 +1225,25 @@ function saveEditedWorkout() {
   const date = document.getElementById('editWDate').value;
   if (!name || !date) return toast('Name and date are required!');
 
-  const exercises = Array.from(document.querySelectorAll('#editExercisesList .exercise-item')).map(row => ({
-    name: row.querySelector('[data-field="name"]').value.trim(),
-    muscle: row.querySelector('[data-field="muscle"]')?.value || '',
-    sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
-    reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
-    weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
-  })).filter(e => e.name);
+  // Flatten the blocks back into the normal array structure
+  const exercises = [];
+  document.querySelectorAll('#editExercisesList .exercise-block').forEach(block => {
+    const exName = block.querySelector('[data-field="name"]').value.trim();
+    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+    if (!exName) return;
 
-  if (!exercises.length) return toast('Add at least one exercise!');
+    block.querySelectorAll('.load-row').forEach(row => {
+      const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
+      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
+      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+      
+      if (sets > 0 || reps > 0 || weight > 0) {
+        exercises.push({ name: exName, muscle, sets, reps, weight });
+      }
+    });
+  });
+
+  if (!exercises.length) return toast('Add at least one valid load entry!');
 
   const muscleCounts = {};
   exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });

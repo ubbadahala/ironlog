@@ -430,16 +430,8 @@
       <input type="number" id="editWDuration" placeholder="60" min="1">
     </div>
     <label style="margin-top:4px;">Exercises</label>
-    <div id="editExerciseHeaders" style="display:grid;grid-template-columns:1fr 100px 70px 70px 80px 36px;gap:8px;margin-bottom:6px;padding:0 2px;">
-      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Exercise</span>
-      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Muscle</span>
-      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Sets</span>
-      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Reps</span>
-      			<span style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Kg</span>
-      			<span></span>
-    	 </div>
     <div class="exercises-list" id="editExercisesList"></div>
-    <button class="btn-add-exercise" onclick="addEditExerciseRow()">+ Add Exercise</button>
+    <button class="btn-add-exercise" onclick="addEditExerciseBlock()">+ Add Exercise Block</button>
     <div>
       <label>Notes</label>
       <textarea id="editWNotes" placeholder="How did it feel?"></textarea>
