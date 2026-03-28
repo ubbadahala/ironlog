@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderExerciseDB();
   refreshWorkoutNameDB();
   renderSettingsExerciseList();
-  addExerciseRow();
+  addExerciseBlock();
   updateStats();
 });
 
@@ -683,7 +683,7 @@ function saveWorkout(durationMins) {
   document.getElementById('wNotes').value = '';
   document.getElementById('exercisesList').innerHTML = '';
   exerciseCount = 0;
-  addExerciseRow();
+  addExerciseBlock();
 }
 
 // ─── SESSION RECAP ─────────────────────────────────────────────────────────────
