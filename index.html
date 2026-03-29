@@ -125,18 +125,18 @@
         </div>
         <div class="glass-input-group">
           <label>SLEEP HOURS</label>
-          <input type="number" id="rSleep" placeholder="0.0" step="0.5">
+          <input type="number" inputmode="decimal" id="rSleep" placeholder="0.0" step="0.5">
         </div>
       </div>
 
       <div class="checkin-grid">
         <div class="glass-input-group">
           <label>PROTEIN (g)</label>
-          <input type="number" id="rProtein" placeholder="0">
+          <input type="number" inputmode="decimal" id="rProtein" placeholder="0">
         </div>
         <div class="glass-input-group">
           <label>BODYWEIGHT (kg)</label>
-          <input type="number" id="rBodyweight" placeholder="0.0" step="0.1">
+          <input type="number" inputmode="decimal" id="rBodyweight" placeholder="0.0" step="0.1">
         </div>
       </div>
 
@@ -297,7 +297,7 @@
       <div class="card-title">Weekly Volume Target</div>
       <p style="font-size:0.85rem;color:var(--text);opacity:0.8;margin-bottom:14px;">Set a weekly volume target (kg) to track on the Log tab.</p>
       <div style="display:flex;gap:10px;align-items:center;">
-        <input type="number" id="weeklyTargetInput" placeholder="e.g. 10000" style="margin-bottom:0;flex:1;" min="0" step="500">
+        <input type="number" inputmode="decimal" id="weeklyTargetInput" placeholder="e.g. 10000" style="margin-bottom:0;flex:1;" min="0" step="500">
         <button class="btn btn-primary" style="width:auto;padding:10px 18px;white-space:nowrap;" onclick="saveWeeklyTarget()">Save</button>
       </div>
       <div id="weeklyTargetHint" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:8px;"></div>
@@ -430,7 +430,7 @@
     </div>
     <div>
       <label>Duration (minutes)</label>
-      <input type="number" id="editWDuration" placeholder="60" min="1">
+      <input type="number" inputmode="decimal" id="editWDuration" placeholder="60" min="1">
     </div>
     <label style="margin-top:4px;">Exercises</label>
     <div class="exercises-list" id="editExercisesList"></div>
@@ -457,17 +457,17 @@
       </div>
       <div class="glass-input-group">
         <label>SLEEP HOURS</label>
-        <input type="number" id="editRSleep" placeholder="0.0" step="0.5">
+        <input type="number" inputmode="decimal" id="editRSleep" placeholder="0.0" step="0.5">
       </div>
     </div>
     <div class="checkin-grid">
       <div class="glass-input-group">
         <label>PROTEIN (g)</label>
-        <input type="number" id="editRProtein" placeholder="0">
+        <input type="number" inputmode="decimal" id="editRProtein" placeholder="0">
       </div>
       <div class="glass-input-group">
         <label>BODYWEIGHT (kg)</label>
-        <input type="number" id="editRBodyweight" placeholder="0.0" step="0.1">
+        <input type="number" inputmode="decimal" id="editRBodyweight" placeholder="0.0" step="0.1">
       </div>
     </div>
     <div class="checkin-grid">
@@ -501,7 +501,12 @@
     <button class="timer-btn-adjust" onclick="adjustTimer(-15)">-15</button>
     <button class="timer-btn-adjust" onclick="adjustTimer(15)">+15</button>
   </div>
+  <button class="timer-btn-close" style="background: rgba(255,255,255,0.05); color: #fff; border-color: rgba(255,255,255,0.15); margin-bottom: 16px;" onclick="minimizeTimer()">↓ Minimize Timer</button>
   <button class="timer-btn-close" onclick="stopTimer()">✕ Close Timer</button>
+</div>
+
+<div id="miniTimerPill" class="mini-timer-pill" onclick="maximizeTimer()">
+  ⏱️ <span id="miniTimerClock">00:00</span>
 </div>
 
 <!-- ── CUSTOM CONFIRM DIALOG ── -->

@@ -723,6 +723,31 @@ input, select, textarea {
 
   .timer-btn-close:active { transform: scale(0.95); }
 
+  /* ── FLOATING MINI TIMER PILL ── */
+  .mini-timer-pill {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 10, 0.85);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    padding: 6px 24px;
+    border-radius: 30px;
+    z-index: 4000;
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    display: none; /* Hidden by default */
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 15px rgba(232,255,71,0.15);
+    letter-spacing: 0.05em;
+  }
+  .mini-timer-pill.blinking { 
+    animation: blinkGlassTimer 1.2s infinite alternate; 
+    color: #000;
+  }
+
   /* TOAST */
   .toast {
     position: fixed;

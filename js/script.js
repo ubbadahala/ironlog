@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('confirmOverlay').addEventListener('click', e => {
     if (e.target.id === 'confirmOverlay') dismissConfirm();
   });
+  checkAndRestoreDraft();
 });
 let workouts = JSON.parse(localStorage.getItem('ironlog_workouts') || '[]');
 let chartInstance = null;
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSettingsExerciseList();
   addExerciseBlock();
   updateStats();
+  checkAndRestoreDraft();
 });
 
 // ─── TABS ────────────────────────────────────────────────────────────────────
@@ -403,15 +405,15 @@ function addLoadRow(bid, ex = {}) {
   row.id = `load-${bid}-${lid}`;
   row.innerHTML = `
     <div style="position:relative">
-      <input type="number" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
+      <input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
     </div>
     <div style="position:relative">
-      <input type="number" placeholder="R" data-field="reps" value="${ex.reps || ''}"
+      <input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${ex.reps || ''}"
         oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;">
     </div>
     <div class="weight-wrapper" style="position:relative">
       <button class="predict-btn" onclick="predictLoadBlock(${bid},${lid})" style="font-size:0.7rem;">🪄</button>
-      <input type="number" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
+      <input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
         oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;padding-left:26px;">
     </div>
     <button class="btn-icon btn-confirm" style="margin-bottom:0;" onclick="logSetLoad(${bid},${lid})" title="Log set">✓</button>
@@ -622,6 +624,7 @@ function cancelSession() {
       toast('Session cancelled');
       // Hide the sticky FAB
       document.getElementById('fabEndSession').style.display = 'none';
+      localStorage.removeItem('ironlog_draft');
     }
   });
 }
@@ -762,6 +765,7 @@ function startSession() {
     if (dateField.value !== nowDate) dateField.value = nowDate;
     // Update live session volume
     updateSessionVolume();
+    saveDraft();
   }, 1000);
 
   // Show last time this workout was done
@@ -782,6 +786,90 @@ function confirmEndSession() {
     body: `Save workout after ${mins} min?`,
     confirmLabel: 'Save & End',
     onConfirm: () => saveWorkout(mins)
+  });
+}
+
+// ─── AUTO-SAVE DRAFT LOGIC ──────────────────────────────────────────────────
+function saveDraft() {
+  if (!sessionStartTime) return; // Only save if a session is actively running
+  const draft = {
+    name: document.getElementById('wName').value.trim(),
+    date: document.getElementById('wDate').value,
+    notes: document.getElementById('wNotes').value.trim(),
+    startTime: sessionStartTime.getTime(), // Save the exact time it started
+    exercises: collectExercises()
+  };
+  localStorage.setItem('ironlog_draft', JSON.stringify(draft));
+}
+
+function checkAndRestoreDraft() {
+  const draftStr = localStorage.getItem('ironlog_draft');
+  if (!draftStr) return;
+
+  showConfirm({
+    icon: '📝',
+    title: 'Resume Workout?',
+    body: 'You have an unfinished workout in progress. Would you like to resume it?',
+    confirmLabel: 'Resume',
+    onConfirm: () => {
+      try {
+        const draft = JSON.parse(draftStr);
+        document.getElementById('wName').value = draft.name || '';
+        document.getElementById('wDate').value = draft.date || '';
+        document.getElementById('wNotes').value = draft.notes || '';
+        
+        document.getElementById('exercisesList').innerHTML = '';
+        blockCount = 0; loadCount = 0;
+
+        // Regroup the flat drafted exercises into UI blocks
+        if (draft.exercises && draft.exercises.length > 0) {
+          const grouped = {};
+          draft.exercises.forEach(e => {
+            const key = e.name.toLowerCase();
+            if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, loads: [] };
+            grouped[key].loads.push(e);
+          });
+          
+          Object.values(grouped).forEach(group => {
+            blockCount++;
+            const bid = blockCount;
+            // Generate the block HTML
+            addExerciseBlock({ name: group.name, muscle: group.muscle });
+            // Clear the default empty load row it created
+            document.getElementById('loads-' + bid).innerHTML = '';
+            // Insert the saved loads
+            group.loads.forEach(load => addLoadRow(bid, load));
+          });
+        } else {
+          addExerciseBlock();
+        }
+
+        // Restart the session clock
+        sessionStartTime = new Date(draft.startTime);
+        document.getElementById('sessionBar').classList.add('active');
+        document.getElementById('sessionStartLabel').textContent = sessionStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('sessionToggleBtn').textContent = '■ End Session';
+        document.getElementById('sessionToggleBtn').classList.add('running');
+        document.getElementById('fabEndSession').style.display = 'block';
+
+        sessionClockInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+          const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+          const s = (elapsed % 60).toString().padStart(2, '0');
+          document.getElementById('sessionClock').textContent = `${m}:${s}`;
+          updateSessionVolume();
+          saveDraft(); // Keep saving
+        }, 1000);
+        
+        toast('Draft restored!');
+      } catch (e) {
+        localStorage.removeItem('ironlog_draft');
+      }
+    },
+    onCancel: () => {
+      localStorage.removeItem('ironlog_draft');
+      toast('Draft discarded.');
+    }
   });
 }
 
@@ -846,6 +934,8 @@ function saveWorkout(durationMins) {
 
   // Hide the sticky FAB
   document.getElementById('fabEndSession').style.display = 'none';
+
+  localStorage.removeItem('ironlog_draft');
 }
 
 // ─── SESSION RECAP ─────────────────────────────────────────────────────────────
@@ -1217,9 +1307,9 @@ function addEditLoadRow(bid, loadData = {}) {
   
   // We use an empty div as a spacer so the "✕" button sits cleanly on the right
   row.innerHTML = `
-    <div><input type="number" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
-    <div><input type="number" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
-    <div><input type="number" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
     <div></div> 
     <button class="btn-icon" style="margin-bottom:0;" onclick="document.getElementById('edit-load-${bid}-${lid}').remove()" title="Remove load">✕</button>
   `;
@@ -2034,8 +2124,12 @@ function startTimer(seconds) {
   updateTimerDisplay();
   
   const widget = document.getElementById('restTimerWidget');
+  const miniPill = document.getElementById('miniTimerPill');
+  
   widget.classList.add('active');
   widget.classList.remove('blinking');
+  miniPill.style.display = 'none'; // Ensure mini pill is hidden when maximized
+  miniPill.classList.remove('blinking');
   
   if (timerInterval) clearInterval(timerInterval);
   
@@ -2048,17 +2142,28 @@ function startTimer(seconds) {
     if (timerSeconds <= 0) {
       clearInterval(timerInterval);
       widget.classList.add('blinking');
+      miniPill.classList.add('blinking');
       toast('⏰ Rest time is up!');
       if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
     }
   }, 1000);
 }
 
+function minimizeTimer() {
+  document.getElementById('restTimerWidget').classList.remove('active');
+  document.getElementById('miniTimerPill').style.display = 'block';
+}
+
+function maximizeTimer() {
+  document.getElementById('miniTimerPill').style.display = 'none';
+  document.getElementById('restTimerWidget').classList.add('active');
+}
+
 function stopTimer() {
   if (timerInterval) clearInterval(timerInterval);
-  const widget = document.getElementById('restTimerWidget');
-  widget.classList.remove('active');
-  widget.classList.remove('blinking');
+  document.getElementById('restTimerWidget').classList.remove('active', 'blinking');
+  document.getElementById('miniTimerPill').style.display = 'none';
+  document.getElementById('miniTimerPill').classList.remove('blinking');
 }
 
 function adjustTimer(sec) {
@@ -2067,8 +2172,10 @@ function adjustTimer(sec) {
   updateTimerDisplay();
   
   const widget = document.getElementById('restTimerWidget');
+  const miniPill = document.getElementById('miniTimerPill');
   if (timerSeconds > 0 && widget.classList.contains('blinking')) {
     widget.classList.remove('blinking');
+    miniPill.classList.remove('blinking');
     startTimer(timerSeconds); 
   }
 }
@@ -2076,8 +2183,9 @@ function adjustTimer(sec) {
 function updateTimerDisplay() {
   const m = Math.floor(timerSeconds / 60);
   const s = timerSeconds % 60;
-  document.getElementById('timerDisplay').textContent = 
-    `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  document.getElementById('timerDisplay').textContent = formatted;
+  document.getElementById('miniTimerClock').textContent = formatted;
 }
 
 // ─── 1RM CALCULATOR ───────────────────────────────────────────────────────────
