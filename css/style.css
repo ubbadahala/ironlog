@@ -1609,6 +1609,60 @@ input, select, textarea {
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
 
+  /* ── LIGHT MODE: RECAP PAGE & TABLES OVERRIDES ── */
+
+  /* 1. Summary Metric Boxes (Time, Volume, Sets) inside Recap */
+  body.light-mode #view-recap .stats-row > div {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+  }
+
+  /* 2. Exercise Tables (Used in both the Recap and History Modal) */
+  body.light-mode .exercise-table th {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--muted) !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  body.light-mode .exercise-table td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    color: var(--text) !important;
+  }
+
+  /* 3. The "NEW PR" Badges generated in the Recap */
+  body.light-mode .recap-pr-badge {
+    background: rgba(158, 179, 0, 0.15) !important;
+    border-color: rgba(158, 179, 0, 0.3) !important;
+    color: var(--accent) !important; 
+  }
+
+  /* 4. Fix Hardcoded White Borders in Modals and Recap */
+  body.light-mode #view-recap [style*="border-top"],
+  body.light-mode .modal [style*="border-top"] {
+    border-top-color: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* ── LIGHT MODE: RECAP PAGE SPECIFICS ── */
+
+  /* Fix the dark 'Notes' container box on the Recap page */
+  body.light-mode #recapNotesContainer {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Fix the white border-bottom under the 'Exercises' header */
+  body.light-mode #view-recap h3 {
+    border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Ensure the main Recap card stays crisp and doesn't inherit dark shadows */
+  body.light-mode #view-recap .card.glass-panel {
+    background: var(--glass-bg) !important;
+    border-color: var(--glass-border) !important;
+    box-shadow: var(--glass-shadow) !important;
+  }
+
   /* ── LIGHT MODE: CONSISTENCY HEATMAP OVERRIDE ── */
   /* Empty days */
   body.light-mode .heatmap-day {
