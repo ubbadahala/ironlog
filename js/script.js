@@ -2196,9 +2196,28 @@ function calculate1RM(weight, reps) {
 }
 
 // ─── #12 LIGHT MODE ───────────────────────────────────────────────────────────
-function toggleLightMode(on) {
-  document.body.classList.toggle('light-mode', on);
-  localStorage.setItem('ironlog_light_mode', on ? '1' : '0');
+function toggleLightMode(isLight) {
+  const toggleEl = document.getElementById('lightModeToggle');
+  if (toggleEl) toggleEl.checked = isLight;
+  
+  if (isLight) {
+    document.body.classList.add('light-mode');
+    // Inject dark gridlines and text for Light Mode charts
+    Chart.defaults.color = '#6b7280';
+    Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.08)';
+  } else {
+    document.body.classList.remove('light-mode');
+    // Revert to light gridlines and text for Dark Mode charts
+    Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+  }
+  
+  localStorage.setItem('ironlog_light_mode', isLight ? '1' : '0');
+  
+  // If the user is looking at the Progress tab, re-draw the charts immediately
+  if (document.getElementById('view-progress').classList.contains('active')) {
+    renderProgress();
+  }
 }
 
 // ─── #5 WEEKLY VOLUME TARGET ──────────────────────────────────────────────────

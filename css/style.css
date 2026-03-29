@@ -1539,6 +1539,58 @@ input, select, textarea {
     color: white;
   }
 
+  /* ── LIGHT MODE: UI ELEMENTS OVERRIDES ── */
+  
+  /* 1. Modals */
+  body.light-mode .modal {
+    background: rgba(245, 245, 245, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #ffffff; /* Crisp white highlight for 3D effect */
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 2. Chips & Pills (Exercise tags, muscle groups) */
+  body.light-mode .chip {
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text);
+  }
+  body.light-mode .meta-pill {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text);
+  }
+
+  /* 3. Date Picker Calendar Icon */
+  body.light-mode ::-webkit-calendar-picker-indicator {
+    filter: invert(0); /* Stops the icon from turning white */
+    opacity: 0.7;
+  }
+
+  /* 4. Empty States ("No activity found") */
+  body.light-mode .empty-state {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  
+  /* 5. Full Screen Timer Widget & Buttons */
+  body.light-mode .rest-timer-widget {
+    background: rgba(245, 245, 245, 0.95);
+  }
+  body.light-mode .timer-btn-adjust, 
+  body.light-mode .timer-btn-close {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: var(--text) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* 6. Glass Panel Reflections (Fixes the flat look) */
+  body.light-mode .glass-panel {
+    border-top: 1px solid #ffffff;
+    border-left: 1px solid #ffffff;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
   /* ── WEEKLY TARGET BAR ── */
   .weekly-target-wrap {
     margin-bottom: 28px;
