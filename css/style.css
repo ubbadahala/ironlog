@@ -1591,17 +1591,22 @@ input, select, textarea {
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
 
-  /* We use !important here to override the hardcoded inline HTML styles */
-  body.light-mode #customConfirm > div {
+  /* ── LIGHT MODE: CONFIRMATION POPUP OVERRIDE ── */
+  body.light-mode .confirm-box {
     background: rgba(245, 245, 245, 0.98) !important;
     border: 1px solid rgba(0, 0, 0, 0.12) !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15) !important;
   }
-  body.light-mode #customConfirm h3 {
+  body.light-mode .confirm-box h3 {
     color: var(--text) !important;
   }
-  body.light-mode #customConfirm p {
+  body.light-mode .confirm-box p {
     color: var(--muted) !important;
+  }
+  body.light-mode .confirm-btn-cancel {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
 
   /* ── LIGHT MODE: CONSISTENCY HEATMAP OVERRIDE ── */
