@@ -1474,34 +1474,70 @@ input, select, textarea {
     letter-spacing: 0.06em;
   }
 
-  /* ── LIGHT MODE ── */
+  /* ─── LIGHT MODE OVERRIDES ────────────────────────────────────────────── */
   body.light-mode {
-    --bg: #f2f2f0;
-    --glass-bg: rgba(255,255,255,0.7);
-    --glass-border: rgba(0,0,0,0.08);
-    --glass-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    --surface: rgba(255,255,255,0.7);
-    --border: rgba(0,0,0,0.08);
-    --text: #111111;
-    --muted: #777;
-    --accent: #c4d600;
-    --accent2: #e05a00;
-    --red: #cc2222;
-    --green: #1a9e50;
+    --bg: #f4f4f5; /* Soft, clean off-white */
+    --glass-bg: rgba(255, 255, 255, 0.75); /* Crisp frosted white */
+    --glass-border: rgba(0, 0, 0, 0.08); /* Subtle dark border */
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06); /* Airy, soft shadow */
+    --surface: rgba(255, 255, 255, 0.9);
+    --border: rgba(0, 0, 0, 0.12);
+
+    /* Darkened the neon colors so they are readable on white! */
+    --accent: #9eb300; /* Deep, sporty lime */
+    --accent2: #e04f1a; /* Deeper orange */
+    --text: #171717; /* Near black for ultimate readability */
+    --muted: #6b7280; /* Clean medium gray */
   }
+
+  /* 1. Fix the Liquid Background Orbs & Grid */
   body.light-mode::before {
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(196,214,0,0.07), transparent 30%),
-      radial-gradient(circle at 85% 30%, rgba(224,90,0,0.06), transparent 30%),
+      radial-gradient(circle at 15% 50%, rgba(158, 179, 0, 0.12), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(224, 79, 26, 0.12), transparent 30%),
       linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
   }
-  body.light-mode .glass-panel {
-    border-top-color: rgba(255,255,255,0.9);
-    border-left-color: rgba(255,255,255,0.7);
+
+  /* 2. Fix the Input Fields & Textareas */
+  body.light-mode input, 
+  body.light-mode select, 
+  body.light-mode textarea {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--text);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
   }
-  body.light-mode select option { background: #fff; color: #111; }
+
+  body.light-mode input:focus, 
+  body.light-mode select:focus, 
+  body.light-mode textarea:focus {
+    background: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(158, 179, 0, 0.15); /* Soft lime glow ring */
+  }
+
+  /* 3. Fix Ghost Buttons & Tabs */
+  body.light-mode .btn-ghost {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--text);
+  }
+
+  body.light-mode .btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  body.light-mode .tab:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text);
+  }
+
+  /* 4. Fix Swipe-to-Delete Background */
+  body.light-mode .swipe-delete-bg {
+    background: #ff4444;
+    color: white;
+  }
 
   /* ── WEEKLY TARGET BAR ── */
   .weekly-target-wrap {

@@ -405,15 +405,15 @@ function addLoadRow(bid, ex = {}) {
   row.id = `load-${bid}-${lid}`;
   row.innerHTML = `
     <div style="position:relative">
-      <input type="text" inputmode="decimal" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
+      <input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
     </div>
     <div style="position:relative">
-      <input type="text" inputmode="decimal" placeholder="R" data-field="reps" value="${ex.reps || ''}"
+      <input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${ex.reps || ''}"
         oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;">
     </div>
     <div class="weight-wrapper" style="position:relative">
       <button class="predict-btn" onclick="predictLoadBlock(${bid},${lid})" style="font-size:0.7rem;">🪄</button>
-      <input type="text" inputmode="decimal" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
+      <input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
         oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;padding-left:26px;">
     </div>
     <button class="btn-icon btn-confirm" style="margin-bottom:0;" onclick="logSetLoad(${bid},${lid})" title="Log set">✓</button>
@@ -489,8 +489,8 @@ function updateDeltaLoad(bid, lid) {
   if (!block || !row) return;
 
   const name = block.querySelector('[data-field="name"]').value.trim();
-  const reps = parseInt(row.querySelector('[data-field="reps"]').value.replace(',', '.')) || 0;
-  const weight = parseFloat(row.querySelector('[data-field="weight"]').value.replace(',', '.')) || 0;
+  const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+  const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
   
   // Helper to cleanly remove deltas and reset margin
   const clearDeltas = () => {
@@ -686,9 +686,9 @@ function collectExercises() {
       result.push({
         name,
         muscle,
-        sets: parseFloat(row.querySelector('[data-field="sets"]').value.replace(',', '.')) || 0,
-        reps: parseFloat(row.querySelector('[data-field="reps"]').value.replace(',', '.')) || 0,
-        weight: parseFloat(row.querySelector('[data-field="weight"]').value.replace(',', '.')) || 0,
+        sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
+        reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
+        weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
       });
     });
   });
@@ -702,9 +702,9 @@ function saveRecovery() {
 
   const entry = {
     date: date,
-    sleep: parseFloat(document.getElementById('sleepHours').value.replace(',', '.')) || 0,
-    protein: parseFloat(document.getElementById('proteinIntake').value.replace(',', '.')) || 0,
-    bodyweight: parseFloat(document.getElementById('bodyweight').value.replace(',', '.')) || 0,
+    sleep: parseFloat(document.getElementById('rSleep').value) || 0,
+    protein: parseFloat(document.getElementById('rProtein').value) || 0,
+    bodyweight: parseFloat(document.getElementById('rBodyweight').value) || 0,
     zinc: document.getElementById('rZinc').checked,
     creatine: document.getElementById('rCreatine').checked,
     soreness: parseInt(document.getElementById('rSoreness').value) || 5
@@ -1307,9 +1307,9 @@ function addEditLoadRow(bid, loadData = {}) {
   
   // We use an empty div as a spacer so the "✕" button sits cleanly on the right
   row.innerHTML = `
-    <div><input type="text" inputmode="decimal" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
-    <div><input type="text" inputmode="decimal" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
-    <div><input type="text" inputmode="decimal" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
     <div></div> 
     <button class="btn-icon" style="margin-bottom:0;" onclick="document.getElementById('edit-load-${bid}-${lid}').remove()" title="Remove load">✕</button>
   `;
@@ -1329,9 +1329,9 @@ function saveEditedWorkout() {
     if (!exName) return;
 
     block.querySelectorAll('.load-row').forEach(row => {
-      sets: parseFloat(row.querySelector('[data-field="sets"]').value.replace(',', '.')) || 0,
-      reps: parseFloat(row.querySelector('[data-field="reps"]').value.replace(',', '.')) || 0,
-      weight: parseFloat(row.querySelector('[data-field="weight"]').value.replace(',', '.')) || 0,
+      const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
+      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
+      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
       
       if (sets > 0 || reps > 0 || weight > 0) {
         exercises.push({ name: exName, muscle, sets, reps, weight });
@@ -1352,7 +1352,7 @@ function saveEditedWorkout() {
     ...workouts[idx],
     name,
     date,
-    duration: parseInt(document.getElementById('editWDuration').value.replace(',', '.')) || 0,
+    duration: parseInt(document.getElementById('editWDuration').value) || 0,
     muscle: primaryMuscle,
     notes: document.getElementById('editWNotes').value.trim(),
     exercises,
@@ -1395,9 +1395,9 @@ function saveEditedRecovery() {
 
   recoveryLogs[idx] = {
     date,
-    sleep: parseFloat(document.getElementById('editSleepHours').value.replace(',', '.')) || 0,
-    protein: parseFloat(document.getElementById('editProtein').value.replace(',', '.')) || 0,
-    bodyweight: parseFloat(document.getElementById('editBodyweight').value.replace(',', '.')) || 0,
+    sleep: parseFloat(document.getElementById('editRSleep').value) || 0,
+    protein: parseFloat(document.getElementById('editRProtein').value) || 0,
+    bodyweight: parseFloat(document.getElementById('editRBodyweight').value) || 0,
     zinc: document.getElementById('editRZinc').checked,
     creatine: document.getElementById('editRCreatine').checked,
     soreness: parseInt(document.getElementById('editRSoreness').value) || 5,
