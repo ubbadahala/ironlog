@@ -98,9 +98,10 @@
         <input type="date" id="wDate">
       </div>
 
-      <!-- Start / End session button -->
-      <button class="btn-start-session" id="sessionToggleBtn" onclick="toggleSession()" style="margin-bottom: 8px;">▶ Start Session</button>
-      <button class="btn btn-ghost" id="restDayBtn" onclick="logRestDay()" style="width:100%; margin-bottom: 24px; font-size:0.75rem; padding:10px;">🛌 Log Rest Day</button>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:24px; margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--glass-border);">
+        <button class="btn-start-session" id="sessionToggleBtn" onclick="toggleSession()" style="margin:0;">▶ Start Session</button>
+        <button class="btn btn-ghost" id="restDayBtn" onclick="logRestDay()" style="width:100%; font-size:0.75rem; padding:12px; margin:0;">🛌 Log Rest Day</button>
+      </div>
 
       <label style="margin-top: 8px;">Exercises</label>
       <div id="exercisesList"></div>

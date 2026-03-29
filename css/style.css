@@ -520,13 +520,11 @@ input, select, textarea {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 12px;   /* Reduced from 28px to pull the next section closer */
-    
-    /* ── NEW SCROLL SETTINGS ── */
+    margin-bottom: 24px;   /* Increased to match the spacing of other cards */
     max-height: 380px;     
     overflow-y: auto;      
     padding-right: 8px;    
-    padding-bottom: 16px;  /* Added a bit more internal padding so the shadow isn't cut off */
+    padding-bottom: 12px;  /* Gives the last PR card room to breathe inside the scroll area */
   }
   
   /* Optional: Make the scrollbar look sleek and match the glass theme */

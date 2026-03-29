@@ -1430,41 +1430,71 @@ function shareWorkout(id) {
   const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
   const node = document.getElementById('share-node');
   
+  // Group flat data into blocks for a cleaner poster
+  const grouped = {};
+  w.exercises.forEach(e => {
+    const key = e.name.toLowerCase();
+    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, loads: [] };
+    grouped[key].loads.push({ s: e.sets, r: e.reps, w: e.weight });
+  });
+
+  // Adapt colors based on Light/Dark mode for the poster output
+  const isLight = document.body.classList.contains('light-mode');
+  const bgGrid = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
+  const bgColor = isLight ? '#f2f2f0' : '#050505';
+  const cardBg = isLight ? 'rgba(255,255,255,0.8)' : 'rgba(20,20,20,0.8)';
+  const textColor = isLight ? '#111' : '#f0f0f0';
+  const mutedColor = isLight ? '#777' : '#888';
+  const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+
   node.innerHTML = `
-    <div class="share-content">
-      <div style="font-family:'Bebas Neue', sans-serif; font-size:3.5rem; letter-spacing:0.08em; color:var(--accent); margin-bottom:5px; line-height:1;">
-        Iron<span style="color:var(--text)">Log</span>
-      </div>
-      <div style="font-family:'DM Mono', monospace; font-size:0.9rem; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; margin-bottom:40px;">
-        ${formatDate(w.date)}
-      </div>
+    <div class="share-content" style="background-color: ${bgColor}; background-image: radial-gradient(circle at 15% 50%, rgba(232,255,71,0.08), transparent 40%), radial-gradient(circle at 85% 30%, rgba(255,107,53,0.08), transparent 40%), linear-gradient(${bgGrid} 1px, transparent 1px), linear-gradient(90deg, ${bgGrid} 1px, transparent 1px); background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px; padding: 40px; border-radius: 20px;">
       
-      <div style="font-family:'Bebas Neue', sans-serif; font-size:2.8rem; letter-spacing:0.05em; color:var(--text); margin-bottom:24px; line-height:1.1;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 30px;">
+        <div>
+          <div style="font-family:'Bebas Neue', sans-serif; font-size:3.5rem; letter-spacing:0.08em; color:var(--accent); margin-bottom:5px; line-height:1; text-shadow: 0 0 20px rgba(232,255,71,0.2);">
+            Iron<span style="color:${textColor}">Log</span>
+          </div>
+          <div style="font-family:'DM Mono', monospace; font-size:0.85rem; letter-spacing:0.1em; color:${mutedColor}; text-transform:uppercase;">
+            ${formatDate(w.date)}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-family:'Bebas Neue', sans-serif; font-size:2.8rem; letter-spacing:0.05em; color:${textColor}; margin-bottom:24px; line-height:1.1;">
         ${w.name}
       </div>
-      
-      <div style="display:flex; gap:16px; margin-bottom:40px;">
-        <div style="background:rgba(20,20,20,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:20px; flex:1; position:relative; overflow:hidden;">
-          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent);"></div>
-          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:var(--muted); margin-bottom:8px;">TOTAL VOLUME</div>
+
+      <div style="display:flex; gap:16px; margin-bottom:30px;">
+        <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:16px; padding:20px; flex:1; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent), transparent);"></div>
+          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:${mutedColor}; margin-bottom:8px;">TOTAL VOLUME</div>
           <div style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; color:var(--accent); line-height:1;">${Math.round(vol).toLocaleString()} KG</div>
         </div>
         ${w.duration ? `
-        <div style="background:rgba(20,20,20,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:20px; flex:1; position:relative; overflow:hidden;">
-          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent);"></div>
-          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:var(--muted); margin-bottom:8px;">DURATION</div>
-          <div style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; color:var(--text); line-height:1;">${w.duration} MIN</div>
+        <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:16px; padding:20px; flex:1; position:relative; overflow:hidden;">
+          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent), transparent);"></div>
+          <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.12em; color:${mutedColor}; margin-bottom:8px;">DURATION</div>
+          <div style="font-family:'Bebas Neue', sans-serif; font-size:2.4rem; color:${textColor}; line-height:1;">${w.duration} MIN</div>
         </div>` : ''}
       </div>
-      
-      <div style="background:rgba(20,20,20,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:24px;">
-        <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.1em; color:var(--muted); margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px;">EXERCISES</div>
-        ${w.exercises.map((e, i) => `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:${i === w.exercises.length - 1 ? '0' : '14px'}; border-bottom:${i === w.exercises.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)'}; padding-bottom:${i === w.exercises.length - 1 ? '0' : '14px'};">
-            <span style="font-size:1.1rem; font-weight:500; color:var(--text);">${e.name}</span>
-            <span style="font-family:'DM Mono', monospace; font-size:0.9rem; color:var(--accent); background:rgba(232,255,71,0.1); padding:4px 10px; border-radius:6px; border:1px solid rgba(232,255,71,0.2);">
-              ${e.sets} × ${e.reps} @ ${e.weight}kg
-            </span>
+
+      <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:20px; padding:24px;">
+        <div style="font-family:'DM Mono', monospace; font-size:0.75rem; letter-spacing:0.1em; color:${mutedColor}; margin-bottom:20px; border-bottom:1px solid ${borderColor}; padding-bottom:12px;">EXERCISES</div>
+        
+        ${Object.values(grouped).map((group, i, arr) => `
+          <div style="margin-bottom:${i === arr.length - 1 ? '0' : '20px'};">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+              <span style="font-size:1.2rem; font-weight:500; color:${textColor}; font-family:'Bebas Neue', sans-serif; letter-spacing:0.04em;">${group.name}</span>
+              ${group.muscle ? `<span style="font-family:'DM Mono', monospace; font-size:0.65rem; color:${mutedColor}; text-transform:uppercase;">${group.muscle}</span>` : ''}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              ${group.loads.map(l => `
+                <span style="font-family:'DM Mono', monospace; font-size:0.85rem; color:var(--accent); background:rgba(232,255,71,0.1); padding:4px 10px; border-radius:6px; border:1px solid rgba(232,255,71,0.2);">
+                  ${l.s} × ${l.r} @ <strong style="font-weight:600;">${l.w}kg</strong>
+                </span>
+              `).join('')}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -1472,22 +1502,24 @@ function shareWorkout(id) {
   `;
   
   setTimeout(() => {
-    html2canvas(node, {
-      backgroundColor: '#050505',
+    // Target the specific inner content so background styling stays perfectly bound
+    html2canvas(node.querySelector('.share-content'), {
+      backgroundColor: null,
       scale: 2,
       logging: false,
       useCORS: true
     }).then(canvas => {
       const link = document.createElement('a');
       link.download = `ironlog-${w.date.replace(/-/g, '')}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.9);
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
       toast('Poster saved! Ready for Instagram. 📸');
+      node.innerHTML = ''; // Clean up invisible DOM
     }).catch(err => {
       console.error(err);
       toast('Failed to generate image.');
     });
-  }, 100);
+  }, 150); // slight delay to ensure fonts render before snapping
 }
 
 let bwChartInstance = null;
@@ -1760,17 +1792,21 @@ function setChartRange(range, btn) {
 }
 
 // ─── BACKUP & DATA FUNCTIONS ──────────────────────────────────────────────────
+// ─── BACKUP & DATA FUNCTIONS ──────────────────────────────────────────────────
 function exportJSON() {
-  if (!workouts.length && !recoveryLogs.length) {
+  if (!workouts.length && !recoveryLogs.length && !restDays.length) {
     return toast('No data to export!');
   }
 
-  // Create a bundle of all user data
+  // Create a bundle of all user data including the latest features
   const backupData = {
-    version: "3.0", // v3: added bodyweight + creatine fields to recovery entries
+    version: "4.0", // v4: added restDays, weeklyTarget, and lightMode
     workouts: workouts,
     recovery: recoveryLogs,
-    exercises: exercisesDB // Included so your custom exercise list is backed up too
+    exercises: exercisesDB,
+    restDays: restDays,
+    weeklyTarget: weeklyTarget,
+    lightMode: localStorage.getItem('ironlog_light_mode') || '0'
   };
 
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
@@ -1781,8 +1817,69 @@ function exportJSON() {
   toast('Full backup exported! 💾');
 }
 
+function importJSON() {
+  const fileInput = document.getElementById('importFile');
+  const file = fileInput.files[0];
+  if (!file) return toast('Please select a JSON file first');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      
+      const doImport = () => {
+        // Handle New Full Backup Format (Object)
+        if (imported.workouts && imported.recovery) {
+          workouts = imported.workouts;
+          recoveryLogs = imported.recovery;
+          
+          if (imported.exercises) exercisesDB = migrateExercisesDB(JSON.stringify(imported.exercises));
+          if (imported.restDays) restDays = imported.restDays;
+          if (imported.weeklyTarget !== undefined) weeklyTarget = imported.weeklyTarget;
+          
+          const isLight = imported.lightMode === '1';
+          localStorage.setItem('ironlog_light_mode', imported.lightMode || '0');
+          toggleLightMode(isLight);
+          
+          const toggleEl = document.getElementById('lightModeToggle');
+          if (toggleEl) toggleEl.checked = isLight;
+
+          localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
+          localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
+          localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
+          localStorage.setItem('ironlog_weekly_target', weeklyTarget);
+        }
+        // Handle Legacy Backup Format (Simple Array)
+        else if (Array.isArray(imported)) {
+          workouts = imported;
+        }
+        
+        save();
+        updateStats();
+        renderHistory();
+        renderProgress();
+        renderNutritionInsights();
+        toast('Data restored successfully! ✅');
+        fileInput.value = '';
+      };
+
+      showConfirm({
+        icon: '⬆️',
+        title: 'Import Backup',
+        body: 'This will merge/replace your current data with the backup file. Continue?',
+        confirmLabel: 'Import',
+        onConfirm: doImport
+      });
+    } catch (err) {
+      console.error(err);
+      toast('Error: Invalid backup file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function exportCSV() {
-  if (!workouts.length && !recoveryLogs.length) return toast('No data to export!');
+  if (!workouts.length && !recoveryLogs.length && !restDays.length) return toast('No data to export!');
 
   let csvContent = "data:text/csv;charset=utf-8,";
 
@@ -1829,6 +1926,12 @@ function exportCSV() {
       });
   }
 
+  // ── REST DAYS SECTION ──
+  if (restDays.length) {
+    csvContent += "\nREST DAYS\nDate\n";
+    [...restDays].sort().forEach(d => { csvContent += `${d}\n`; });
+  }
+
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -1837,53 +1940,6 @@ function exportCSV() {
   link.click();
   document.body.removeChild(link);
   toast('Full CSV exported! 📊');
-}
-
-function importJSON() {
-  const fileInput = document.getElementById('importFile');
-  const file = fileInput.files[0];
-  if (!file) return toast('Please select a JSON file first');
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const imported = JSON.parse(e.target.result);
-      
-      const doImport = () => {
-        // Handle New Full Backup Format (Object)
-        if (imported.workouts && imported.recovery) {
-          workouts = imported.workouts;
-          recoveryLogs = imported.recovery;
-          if (imported.exercises) exercisesDB = migrateExercisesDB(JSON.stringify(imported.exercises));
-          localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
-          localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-        }
-        // Handle Legacy Backup Format (Simple Array)
-        else if (Array.isArray(imported)) {
-          workouts = imported;
-        }
-        save();
-        updateStats();
-        renderHistory();
-        renderProgress();
-        renderNutritionInsights();
-        toast('Data restored successfully! ✅');
-        fileInput.value = '';
-      };
-
-      showConfirm({
-        icon: '⬆️',
-        title: 'Import Backup',
-        body: 'This will merge/replace your current data with the backup file. Continue?',
-        confirmLabel: 'Import',
-        onConfirm: doImport
-      });
-    } catch (err) {
-      console.error(err);
-      toast('Error: Invalid backup file.');
-    }
-  };
-  reader.readAsText(file);
 }
 
 function clearAllData() {
