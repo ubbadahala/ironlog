@@ -48,16 +48,6 @@
       </div>
     </div>
 
-    <div class="card glass-panel" style="padding: 18px 24px; margin-bottom: 24px;">
-      <label style="margin-bottom: 12px;">Quick Rest Timer</label>
-      <div class="quick-timers">
-        <button class="btn-timer" onclick="startTimer(60)">60s</button>
-        <button class="btn-timer" onclick="startTimer(90)">90s</button>
-        <button class="btn-timer" onclick="startTimer(120)">120s</button>
-        <button class="btn-timer" onclick="startTimer(180)">180s</button>
-      </div>
-    </div>
-
       <!-- Weekly volume target bar -->
       <div class="weekly-target-wrap glass-panel card" id="weeklyTargetWrap" style="padding:16px 20px;margin-bottom:24px;display:none;">
         <div class="weekly-target-header">
@@ -73,18 +63,30 @@
       <div class="card-title">Log Workout</div>
 
       <!-- Session timer bar (shown when session is running) -->
-      <div class="session-bar" id="sessionBar">
-        <div>
-          <div class="session-label">Session in progress</div>
-          <div class="session-clock" id="sessionClock">00:00</div>
-          <div id="sessionVolDisplay" style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:0.06em;margin-top:2px;">0 kg</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">
-            Started at<br><span id="sessionStartLabel" style="color:var(--text);">—</span>
+      <div class="session-bar" id="sessionBar" style="flex-direction: column; align-items: stretch; gap: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <div class="session-label">Session in progress</div>
+            <div class="session-clock" id="sessionClock">00:00</div>
+            <div id="sessionVolDisplay" style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:0.06em;margin-top:2px;">0 kg</div>
           </div>
-          <div class="last-session-bar" id="lastSessionBar"></div>
-          <button onclick="cancelSession()" style="background:none;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);cursor:pointer;margin-top:6px;letter-spacing:0.05em;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕ cancel</button>
+          <div style="text-align:right;">
+            <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">
+              Started at<br><span id="sessionStartLabel" style="color:var(--text);">—</span>
+            </div>
+            <div class="last-session-bar" id="lastSessionBar"></div>
+            <button onclick="cancelSession()" style="background:none;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--red);cursor:pointer;margin-top:6px;letter-spacing:0.05em;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕ cancel</button>
+          </div>
+        </div>
+        
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Quick Rest Timer</div>
+          <div class="quick-timers">
+            <button class="btn-timer" onclick="startTimer(60)">60s</button>
+            <button class="btn-timer" onclick="startTimer(90)">90s</button>
+            <button class="btn-timer" onclick="startTimer(120)">120s</button>
+            <button class="btn-timer" onclick="startTimer(180)">180s</button>
+          </div>
         </div>
       </div>
 
@@ -109,7 +111,7 @@
 
       <div>
         <label>Notes</label>
-        <textarea id="wNotes" placeholder="How did it feel? Any PRs?"></textarea>
+        <textarea id="wNotes" placeholder="How did it feel? Any PRs?" style="margin-bottom: 0;"></textarea>
       </div>
     </div>
 
@@ -514,6 +516,8 @@
     </div>
   </div>
 </div>
+
+<button class="fab-end-session" id="fabEndSession" onclick="confirmEndSession()" style="display: none;">■ End Session</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

@@ -226,16 +226,13 @@ function saveExercises() {
 }
 
 // ─── RENDER HEATMAP ──────────────────────────────────────────────────
-
 function renderHeatmap() {
   const container = document.getElementById('volumeHeatmap');
   if (!container) return;
 
   const now = new Date();
-  const daysToShow = 91; // 13 weeks
   const heatmapData = {};
 
-  // 1. Calculate daily volumes for intensity scaling
   let maxVolume = 0;
   workouts.forEach(w => {
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
@@ -243,13 +240,11 @@ function renderHeatmap() {
     if (vol > maxVolume) maxVolume = vol;
   });
 
-  // 2. Build the grid (13 columns/weeks)
   let html = '';
   for (let w = 0; w < 13; w++) {
     html += '<div class="heatmap-column">';
     for (let d = 0; d < 7; d++) {
       const date = new Date(now);
-      // Calculate date based on offset from "today"
       const dayOffset = (12 - w) * 7 + (6 - d);
       date.setDate(now.getDate() - dayOffset);
       const dateStr = date.toISOString().split('T')[0];
@@ -263,9 +258,12 @@ function renderHeatmap() {
         else if (ratio < 0.5) level = 2;
         else if (ratio < 0.75) level = 3;
         else level = 4;
+      } else if (restDays.includes(dateStr)) {
+        level = 'rest'; // Triggers the icy blue CSS class
       }
 
-      html += `<div class="heatmap-day level-${level}" title="${formatDate(dateStr)}: ${Math.round(dailyVol)}kg"></div>`;
+      const tooltipText = level === 'rest' ? 'Rest Day 🛌' : `${Math.round(dailyVol)}kg`;
+      html += `<div class="heatmap-day level-${level}" title="${formatDate(dateStr)}: ${tooltipText}"></div>`;
     }
     html += '</div>';
   }
@@ -622,6 +620,8 @@ function cancelSession() {
       btn.textContent = '▶ Start Session';
       btn.classList.remove('running');
       toast('Session cancelled');
+      // Hide the sticky FAB
+      document.getElementById('fabEndSession').style.display = 'none';
     }
   });
 }
@@ -766,6 +766,9 @@ function startSession() {
 
   // Show last time this workout was done
   updateLastSessionInfo(document.getElementById('wName').value.trim());
+
+  // Show the sticky FAB
+  document.getElementById('fabEndSession').style.display = 'block';
 }
 
 function confirmEndSession() {
@@ -840,6 +843,9 @@ function saveWorkout(durationMins) {
   document.getElementById('exercisesList').innerHTML = '';
   blockCount = 0; loadCount = 0;
   addExerciseBlock();
+
+  // Hide the sticky FAB
+  document.getElementById('fabEndSession').style.display = 'none';
 }
 
 // ─── SESSION RECAP ─────────────────────────────────────────────────────────────
@@ -1320,27 +1326,57 @@ function renderHistory() {
   const sortOrder = document.getElementById('historySortOrder')?.value || 'newest';
   const list = document.getElementById('historyList');
 
-  let filtered = workouts.filter(w =>
+  // 1. Filter Workouts
+  let filteredWorkouts = workouts.filter(w =>
     (w.name.toLowerCase().includes(q) ||
     w.exercises.some(e => e.name.toLowerCase().includes(q)) ||
     w.exercises.some(e => (e.muscle || '').toLowerCase().includes(q))) &&
     (!muscleFilter || w.exercises.some(e => e.muscle === muscleFilter))
-  );
+  ).map(w => ({ type: 'workout', data: w }));
 
-  if (sortOrder === 'oldest') filtered = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
-  else if (sortOrder === 'volume') filtered = [...filtered].sort((a, b) => {
-    const va = a.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
-    const vb = b.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
-    return vb - va;
-  });
-  // default: newest first (already newest-first from unshift)
+  // 2. Filter Rest Days (Hide them if a specific muscle filter is applied, but keep them for search)
+  let filteredRestDays = [];
+  if (!muscleFilter && (!q || 'rest day'.includes(q))) {
+    filteredRestDays = restDays.map(d => ({ type: 'rest', date: d }));
+  }
 
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div>No workouts found.</div>`;
+  // 3. Combine and Sort
+  let combined = [...filteredWorkouts, ...filteredRestDays];
+  
+  if (sortOrder === 'oldest') {
+    combined.sort((a, b) => new Date(a.type === 'rest' ? a.date : a.data.date) - new Date(b.type === 'rest' ? b.date : b.data.date));
+  } else if (sortOrder === 'volume') {
+    combined.sort((a, b) => {
+      const va = a.type === 'rest' ? -1 : a.data.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
+      const vb = b.type === 'rest' ? -1 : b.data.exercises.reduce((s, e) => s + e.sets * e.reps * e.weight, 0);
+      return vb - va; // Rest days get pushed to the bottom
+    });
+  } else {
+    // Default: Newest first
+    combined.sort((a, b) => new Date(b.type === 'rest' ? b.date : b.data.date) - new Date(a.type === 'rest' ? a.date : a.data.date));
+  }
+
+  if (!combined.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div>No activity found.</div>`;
     return;
   }
 
-  list.innerHTML = filtered.map(w => {
+  // 4. Render HTML
+  list.innerHTML = combined.map(item => {
+    // ── RENDER REST DAY ──
+    if (item.type === 'rest') {
+      return `
+      <div class="rest-entry glass-panel">
+        <div class="rest-entry-title">🛌 Rest Day</div>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);">${formatDate(item.date)}</span>
+          <button class="btn-icon" style="width:32px; height:32px; margin-bottom:0; font-size:0.85rem;" onclick="removeRestDay('${item.date}')" title="Delete Rest Day">✕</button>
+        </div>
+      </div>`;
+    }
+
+    // ── RENDER WORKOUT ──
+    const w = item.data;
     const vol = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
     const density = w.duration ? (vol / w.duration).toFixed(1) : 0;
     const chips = [...new Set(w.exercises.map(e => e.name))].map(name => `<span class="chip">${name}</span>`).join('');
@@ -1368,10 +1404,31 @@ function renderHistory() {
     </div>`;
   }).join('');
 
-  // Attach swipe-to-delete to each entry
-  filtered.forEach(w => {
-    const el = document.getElementById('we-' + w.id);
-    if (el) attachSwipeDelete(el, w.id);
+  // Re-attach swipe-to-delete for the workouts
+  combined.forEach(item => {
+    if (item.type === 'workout') {
+      const el = document.getElementById('we-' + item.data.id);
+      if (el) attachSwipeDelete(el, item.data.id);
+    }
+  });
+}
+
+// Remove a logged rest day
+function removeRestDay(date) {
+  showConfirm({
+    icon: '🗑️',
+    title: 'Remove Rest Day',
+    body: `Delete the rest day logged on ${formatDate(date)}?`,
+    confirmLabel: 'Remove',
+    danger: true,
+    onConfirm: () => {
+      restDays = restDays.filter(d => d !== date);
+      localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
+      updateStats();
+      renderHistory();
+      renderProgress(); // Updates the heatmap immediately
+      toast('Rest day removed');
+    }
   });
 }
 
@@ -2071,12 +2128,25 @@ function updateWeeklyTargetBar() {
 
 // ─── #6 REST DAY ──────────────────────────────────────────────────────────────
 function logRestDay() {
-  const today = new Date().toISOString().split('T')[0];
-  if (restDays.includes(today)) return toast('Rest day already logged for today.');
-  restDays.push(today);
+  const todayStr = new Date().toISOString().split('T')[0];
+  let selectedDate = document.getElementById('wDate').value;
+  
+  if (!selectedDate) {
+    selectedDate = todayStr;
+  }
+
+  // Determine the friendly name for the toast
+  const dateLabel = (selectedDate === todayStr) ? 'today' : formatDate(selectedDate);
+
+  if (restDays.includes(selectedDate)) {
+    return toast(`Rest day already logged for ${dateLabel}.`);
+  }
+
+  restDays.push(selectedDate);
   localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
   updateStats();
-  toast('Rest day logged 🛌 Streak preserved!');
+  
+  toast(`Rest day logged for ${dateLabel} 🛌`);
 }
 
 // ─── #9 LAST SESSION INFO ─────────────────────────────────────────────────────

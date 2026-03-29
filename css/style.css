@@ -520,11 +520,13 @@ input, select, textarea {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 24px;   /* Increased to match the spacing of other cards */
+    margin-bottom: 0;      /* Removed the huge 28px margin */
+    
+    /* Scroll Settings */
     max-height: 380px;     
     overflow-y: auto;      
     padding-right: 8px;    
-    padding-bottom: 12px;  /* Gives the last PR card room to breathe inside the scroll area */
+    padding-bottom: 4px;   /* Just 4px so the inner shadows don't clip */
   }
   
   /* Optional: Make the scrollbar look sleek and match the glass theme */
@@ -545,7 +547,7 @@ input, select, textarea {
 
   .pr-card {
     border-radius: 16px;
-    padding: 18px;
+    padding: 18px 18px 14px 18px; /* Slightly tighter at the bottom */
   }
 
   .pr-exercise {
@@ -756,6 +758,37 @@ input, select, textarea {
   /* ── SPECIFIC GRID FOR EDIT MODAL (DESKTOP) ── */
   #editExercisesList .exercise-item {
     grid-template-columns: 1fr 100px 70px 70px 80px 36px;
+  }
+
+  /* ── FLOATING END SESSION BUTTON ── */
+  .fab-end-session {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff7777;
+    border: 1px solid rgba(255, 68, 68, 0.4);
+    padding: 14px 28px;
+    border-radius: 30px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  
+  .fab-end-session:hover {
+    background: rgba(255, 68, 68, 0.25);
+    color: #fff;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255, 68, 68, 0.3);
   }
 
   /* MOBILE RESPONSIVE FIXES */
@@ -1006,6 +1039,40 @@ input, select, textarea {
     color: var(--muted);
     margin-top: 8px;
     text-transform: uppercase;
+  }
+
+  /* ── REST DAY HEATMAP COLOR ── */
+  .level-rest { 
+    background: rgba(100, 180, 255, 0.25); 
+    border: 1px solid rgba(100, 180, 255, 0.4); 
+  }
+  .level-rest:hover { 
+    background: rgba(100, 180, 255, 0.4); 
+    box-shadow: 0 0 10px rgba(100, 180, 255, 0.5); 
+  }
+
+  /* ── REST DAY HISTORY CARD ── */
+  .rest-entry {
+    background: rgba(100, 180, 255, 0.05);
+    border: 1px solid rgba(100, 180, 255, 0.15);
+    border-left: 4px solid #64b4ff;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .rest-entry-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    color: #64b4ff;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   /* RADAR CHART CONTAINER */
@@ -1631,6 +1698,7 @@ input, select, textarea {
     max-width: 680px;
     max-height: 88vh;
     overflow-y: auto;
+    overscroll-behavior: contain; /* Prevents background scrolling */
     box-shadow: 0 24px 64px rgba(0,0,0,0.6);
     transform: translateY(16px);
     transition: transform 0.3s cubic-bezier(0.25,1,0.5,1);
