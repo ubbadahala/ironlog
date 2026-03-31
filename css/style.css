@@ -773,6 +773,8 @@ input, select, textarea {
 
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
+  .toast.lifted { bottom: 100px; }
+
   /* HIDDEN SHARE NODE CONTAINER */
   #share-container { position: absolute; top: -9999px; left: -9999px; }
   .share-card {
@@ -956,7 +958,8 @@ input, select, textarea {
 
   .legend-overlay {
     display: flex;
-    gap: 16px;
+    flex-wrap: wrap; /* <-- Add this to allow new lines */
+    gap: 16px;       /* This handles both horizontal and vertical spacing when wrapped */
     margin-bottom: 20px;
     font-family: 'DM Mono', monospace;
     font-size: 0.7rem;
@@ -964,7 +967,13 @@ input, select, textarea {
     letter-spacing: 0.05em;
   }
 
-  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    white-space: nowrap; /* <-- Add this to keep the dot and text together */
+  }
+
   .dot-vol { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
   .dot-rec { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
 

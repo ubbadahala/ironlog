@@ -1,0 +1,521 @@
+let blockCount = 0;
+let loadCount = 0;
+
+function addExerciseBlock(ex = {}) {
+  blockCount++;
+  const bid = blockCount;
+  const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
+    .map(m => `<option value="${m}" ${(ex.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
+
+  const block = document.createElement('div');
+  block.className = 'exercise-block';
+  block.id = 'exb-' + bid;
+  block.innerHTML = `
+    <div class="exercise-block-header">
+      <div class="name-wrapper" style="position:relative;">
+        <input type="text" placeholder="Exercise name" value="${ex.name || ''}"
+          data-block="${bid}" data-field="name" list="exercise-db" autocomplete="off"
+          oninput="onBlockNameInput(${bid}, this.value)">
+        <button class="history-peek-btn" onclick="peekHistoryBlock(${bid})">LOGS</button>
+      </div>
+      <div class="muscle-select-wrap">
+        <select data-block="${bid}" data-field="muscle" style="font-size:0.78rem;padding:10px 8px;"
+          onchange="onBlockMuscleChange(${bid})">
+          ${muscleOptions}
+        </select>
+      </div>
+      <button class="btn-remove-block" onclick="removeExerciseBlock(${bid})" title="Remove exercise">✕</button>
+    </div>
+    <div class="load-row-labels">
+      <span>Sets</span><span>Reps</span><span>Kg</span><span></span><span></span>
+    </div>
+    <div class="load-rows" id="loads-${bid}"></div>
+    <button class="btn-add-load" onclick="addLoadRow(${bid})">+ Add load</button>
+  `;
+  document.getElementById('exercisesList').appendChild(block);
+
+  // Add first load row (pre-filled if editing)
+  addLoadRow(bid, ex);
+
+  // Auto-fill muscle if known
+  if (ex.name) {
+    setTimeout(() => {
+      onBlockNameInput(bid, ex.name);
+      onBlockMuscleChange(bid);
+    }, 50);
+  }
+}
+
+function addLoadRow(bid, ex = {}) {
+  loadCount++;
+  const lid = loadCount;
+  const container = document.getElementById('loads-' + bid);
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'load-row';
+  row.id = `load-${bid}-${lid}`;
+  row.innerHTML = `
+    <div style="position:relative">
+      <input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${ex.sets || ''}" style="padding:10px;">
+    </div>
+    <div style="position:relative">
+      <input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${ex.reps || ''}"
+        oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;">
+    </div>
+    <div class="weight-wrapper" style="position:relative">
+      <button class="predict-btn" onclick="predictLoadBlock(${bid},${lid})" style="font-size:0.7rem;">🪄</button>
+      <input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${ex.weight || ''}" step="0.5"
+        oninput="updateDeltaLoad(${bid},${lid})" style="padding:10px;padding-left:26px;">
+    </div>
+    <button class="btn-icon btn-confirm" style="margin-bottom:0;" onclick="logSetLoad(${bid},${lid})" title="Log set">✓</button>
+    <button class="btn-icon" style="margin-bottom:0;" onclick="removeLoadRow(${bid},${lid})" title="Remove load">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function removeLoadRow(bid, lid) {
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  const container = document.getElementById('loads-' + bid);
+  // Don't remove if it's the only load row
+  if (container && container.querySelectorAll('.load-row').length <= 1) {
+    toast('Each exercise needs at least one load row.');
+    return;
+  }
+  if (row) row.remove();
+}
+
+function removeExerciseBlock(bid) {
+  const block = document.getElementById('exb-' + bid);
+  if (block) block.remove();
+}
+
+function onBlockNameInput(bid, value) {
+  // Auto-fill muscle if exercise is in DB and muscle not set
+  const val = value.trim().toLowerCase();
+  if (!val) return;
+  const match = exercisesDB.find(ex => ex.name.toLowerCase() === val);
+  if (!match || !match.muscle) return;
+  const sel = document.querySelector(`#exb-${bid} [data-field="muscle"]`);
+  if (sel && !sel.value) sel.value = match.muscle;
+  // Update deltas on all load rows
+  document.querySelectorAll(`#loads-${bid} .load-row`).forEach(row => {
+    const lid = row.id.split('-')[2];
+    updateDeltaLoad(bid, lid);
+  });
+}
+
+function onBlockMuscleChange(bid) {
+  // Just re-run delta so colour can update
+}
+
+function logSetLoad(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  if (!block) return;
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+  if (name) triggerSmartTimer(name, muscle);
+  incrementSetCounterLoad(bid, lid);
+  if (navigator.vibrate) navigator.vibrate(50);
+  updateSessionVolume();
+}
+
+function incrementSetCounterLoad(bid, lid) {
+  const btn = document.querySelector(`#load-${bid}-${lid} .btn-confirm`);
+  if (!btn) return;
+  let badge = btn.querySelector('.set-counter');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'set-counter';
+    btn.style.position = 'relative';
+    btn.appendChild(badge);
+  }
+  const current = parseInt(badge.dataset.sets || '0') + 1;
+  badge.dataset.sets = current;
+  badge.textContent = `S${current}`;
+}
+
+function updateDeltaLoad(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  if (!block || !row) return;
+
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  const reps = parseInt(row.querySelector('[data-field="reps"]').value) || 0;
+  const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+  
+  // Helper to cleanly remove deltas and reset margin
+  const clearDeltas = () => {
+    row.classList.remove('has-deltas');
+    row.querySelectorAll('.delta-box').forEach(el => el.remove());
+  };
+
+  if (!name || !workouts.length) return clearDeltas();
+
+  const recentWorkout = workouts.find(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
+  if (!recentWorkout) return clearDeltas();
+
+  const best = recentWorkout.exercises
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+
+  renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, reps - best.reps, 'r');
+  renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weight - best.weight, 'kg');
+  
+  // Triggers the CSS to expand the margin
+  row.classList.add('has-deltas');
+}
+
+function renderDeltaLabel(parent, val, unit) {
+  let el = parent.querySelector('.delta-box');
+  if (!el) {
+    el = document.createElement('span');
+    el.className = 'delta-box';
+    parent.appendChild(el);
+  }
+  
+  if (val === 0) {
+    el.innerHTML = `<span class="delta-neutral">= last</span>`;
+  } else {
+    const cls = val > 0 ? 'delta-pos' : 'delta-neg';
+    const sign = val > 0 ? '+' : '';
+    el.innerHTML = `<span class="${cls}">${sign}${val}${unit}</span>`;
+  }
+}
+
+function predictLoadBlock(bid, lid) {
+  const block = document.getElementById('exb-' + bid);
+  const row = document.getElementById(`load-${bid}-${lid}`);
+  if (!block || !row) return;
+
+  const name = block.querySelector('[data-field="name"]').value.trim();
+  if (!name) return toast('Enter exercise name first!');
+
+  const weightInput = row.querySelector('[data-field="weight"]');
+  const history = workouts
+    .flatMap(w => w.exercises.map(e => ({ ...e, date: w.date })))
+    .filter(e => e.name.toLowerCase() === name.toLowerCase())
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!history.length) return toast('No history found. Set your own baseline!');
+
+  const last = history[0];
+  let suggestion = last.weight;
+  let statusMsg = '', statusColor = 'var(--accent)';
+
+  const isStagnant = history.length >= 3 &&
+    history[0].weight === history[1].weight &&
+    history[1].weight === history[2].weight &&
+    history[0].reps <= history[1].reps;
+
+  if (isStagnant) {
+    suggestion = Math.floor((last.weight * 0.9) * 2) / 2;
+    statusMsg = `⚠️ Stagnation detected. Deloading to ${suggestion}kg.`;
+    statusColor = '#ffb347';
+  } else if (last.reps >= 8) {
+    const isLeg = last.muscle === 'Legs' ||
+      ['legs','quads','glutes','hamstrings','squat','leg press','calf'].some(m => name.toLowerCase().includes(m));
+    suggestion += isLeg ? 5 : 2.5;
+    statusMsg = `🔥 Target hit! Increasing to ${suggestion}kg.`;
+    statusColor = 'var(--green)';
+  } else {
+    statusMsg = `Stay at ${suggestion}kg, aim for 8+ reps.`;
+    statusColor = 'var(--muted)';
+  }
+
+  weightInput.value = suggestion;
+  updateDeltaLoad(bid, lid);
+  weightInput.animate([
+    { boxShadow: `0 0 20px ${statusColor}`, transform: 'scale(1.05)' },
+    { boxShadow: 'none', transform: 'scale(1)' }
+  ], { duration: 500, easing: 'ease-out' });
+  toast(statusMsg);
+}
+
+function collectExercises() {
+  // Read all exercise blocks; each block can have multiple load rows
+  const blocks = document.querySelectorAll('.exercise-block');
+  const result = [];
+  blocks.forEach(block => {
+    const name = block.querySelector('[data-field="name"]').value.trim();
+    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+    if (!name) return;
+    block.querySelectorAll('.load-row').forEach(row => {
+      result.push({
+        name,
+        muscle,
+        sets: parseFloat(row.querySelector('[data-field="sets"]').value) || 0,
+        reps: parseFloat(row.querySelector('[data-field="reps"]').value) || 0,
+        weight: parseFloat(row.querySelector('[data-field="weight"]').value) || 0,
+      });
+    });
+  });
+  return result;
+}
+
+function saveWorkout(durationMins) {
+  const name = document.getElementById('wName').value.trim();
+  const date = document.getElementById('wDate').value;
+  if (!name || !date) return toast('Add a name and date!');
+  const exercises = collectExercises();
+  if (exercises.some(e => !e.name)) return toast('Please name all your exercises before saving!');
+  if (!exercises.length) return toast('Add at least one exercise!');
+
+  const currentVolume = exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+
+  // Check for Volume PR
+  const maxVolume = workouts.reduce((max, w) => {
+    const v = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+    return v > max ? v : max;
+  }, 0);
+  const isVolumePR = currentVolume > maxVolume && workouts.length > 0;
+
+  // Derive primary muscle group from exercises (most common non-empty value)
+  const muscleCounts = {};
+  exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
+  const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || '';
+
+  const workout = {
+    id: Date.now(),
+    name,
+    date,
+    duration: durationMins || 0,
+    muscle: primaryMuscle,
+    notes: document.getElementById('wNotes').value.trim(),
+    exercises,
+  };
+
+  workouts.unshift(workout);
+  save();
+  updateStats();
+  refreshWorkoutNameDB();
+
+  if (isVolumePR) { triggerConfetti(); }
+
+  // Stop session clock
+  clearInterval(sessionClockInterval);
+  sessionClockInterval = null;
+  sessionStartTime = null;
+  document.getElementById('sessionBar').classList.remove('active');
+  document.getElementById('sessionClock').textContent = '00:00';
+  const btn = document.getElementById('sessionToggleBtn');
+  btn.textContent = '▶ Start Session';
+  btn.classList.remove('running');
+
+  // Show recap
+  showRecap(workout, isVolumePR);
+
+  // Reset form
+  document.getElementById('wName').value = '';
+  document.getElementById('wNotes').value = '';
+  document.getElementById('exercisesList').innerHTML = '';
+  blockCount = 0; loadCount = 0;
+  addExerciseBlock();
+
+  // Hide the sticky FAB
+  document.getElementById('fabEndSession').style.display = 'none';
+
+  localStorage.removeItem('ironlog_draft');
+}
+
+function updateSessionVolume() {
+  const el = document.getElementById('sessionVolDisplay');
+  if (!el || !sessionStartTime) return;
+  const exercises = collectExercises();
+  const vol = exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0);
+  el.textContent = `${Math.round(vol).toLocaleString()} kg`;
+}
+
+function updateLastSessionInfo(workoutName) {
+  const bar = document.getElementById('lastSessionBar');
+  if (!bar) return;
+  if (!workoutName) { bar.classList.remove('visible'); return; }
+  const prev = workouts.find(w => w.name.toLowerCase() === workoutName.toLowerCase());
+  if (!prev) { bar.classList.remove('visible'); return; }
+  const vol = prev.exercises.reduce((a, e) => a + e.sets * e.reps * e.weight, 0);
+  const daysAgo = Math.round((Date.now() - new Date(prev.date + 'T00:00:00')) / 86400000);
+  const daysStr = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
+  bar.innerHTML = `Last: <strong>${daysStr}</strong> · <strong>${Math.round(vol).toLocaleString()} kg</strong>`;
+  bar.classList.add('visible');
+}
+
+let editBlockCount = 0;
+let editLoadCount = 0;
+
+function openEditWorkout(id) {
+  const w = workouts.find(x => x.id === id);
+  if (!w) return;
+  editingWorkoutId = id;
+
+  document.getElementById('editWName').value = w.name || '';
+  document.getElementById('editWDate').value = w.date || '';
+  document.getElementById('editWDuration').value = w.duration || '';
+  document.getElementById('editWNotes').value = w.notes || '';
+
+  const list = document.getElementById('editExercisesList');
+  list.innerHTML = '';
+  editBlockCount = 0;
+  editLoadCount = 0;
+
+  // Group flat data into blocks for the UI
+  const grouped = {};
+  w.exercises.forEach(e => {
+    const key = e.name.toLowerCase();
+    if (!grouped[key]) grouped[key] = { name: e.name, muscle: e.muscle, loads: [] };
+    grouped[key].loads.push({ sets: e.sets, reps: e.reps, weight: e.weight });
+  });
+
+  Object.values(grouped).forEach(group => addEditExerciseBlock(group));
+
+  openModal('editWorkoutModal');
+}
+
+function addEditExerciseBlock(group = {}) {
+  editBlockCount++;
+  const bid = editBlockCount;
+  const muscleOptions = ['','Chest','Back','Shoulders','Arms','Legs','Core','Full Body','Cardio']
+    .map(m => `<option value="${m}" ${(group.muscle||'')=== m?'selected':''}>${m||'Muscle…'}</option>`).join('');
+
+  const block = document.createElement('div');
+  block.className = 'exercise-block';
+  block.id = 'edit-exb-' + bid;
+  block.innerHTML = `
+    <div class="exercise-block-header">
+      <div class="name-wrapper" style="position:relative;">
+        <input type="text" placeholder="Exercise name" value="${group.name || ''}"
+          data-field="name" list="exercise-db" autocomplete="off" style="margin-bottom:0;">
+      </div>
+      <div class="muscle-select-wrap">
+        <select data-field="muscle" style="font-size:0.78rem;padding:10px 8px;margin-bottom:0;">
+          ${muscleOptions}
+        </select>
+      </div>
+      <button class="btn-remove-block" onclick="document.getElementById('edit-exb-${bid}').remove()" title="Remove block">✕</button>
+    </div>
+    <div class="load-row-labels">
+      <span>Sets</span><span>Reps</span><span>Kg</span><span></span><span></span>
+    </div>
+    <div class="load-rows" id="edit-loads-${bid}"></div>
+    <button class="btn-add-load" onclick="addEditLoadRow(${bid})">+ Add load</button>
+  `;
+  document.getElementById('editExercisesList').appendChild(block);
+
+  if (group.loads && group.loads.length > 0) {
+    group.loads.forEach(load => addEditLoadRow(bid, load));
+  } else {
+    addEditLoadRow(bid, {}); // Initialize empty row for new block
+  }
+}
+
+function addEditLoadRow(bid, loadData = {}) {
+  editLoadCount++;
+  const lid = editLoadCount;
+  const container = document.getElementById('edit-loads-' + bid);
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'load-row';
+  row.id = `edit-load-${bid}-${lid}`;
+  
+  // We use an empty div as a spacer so the "✕" button sits cleanly on the right
+  row.innerHTML = `
+    <div><input type="number" inputmode="decimal" placeholder="S" data-field="sets" value="${loadData.sets || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="R" data-field="reps" value="${loadData.reps || ''}" style="padding:10px;margin-bottom:0;"></div>
+    <div><input type="number" inputmode="decimal" placeholder="Kg" data-field="weight" value="${loadData.weight || ''}" step="0.5" style="padding:10px;margin-bottom:0;"></div>
+    <div></div> 
+    <button class="btn-icon" style="margin-bottom:0;" onclick="document.getElementById('edit-load-${bid}-${lid}').remove()" title="Remove load">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function saveEditedWorkout() {
+  const name = document.getElementById('editWName').value.trim();
+  const date = document.getElementById('editWDate').value;
+  if (!name || !date) return toast('Name and date are required!');
+
+  // Flatten the blocks back into the normal array structure
+  const exercises = [];
+  document.querySelectorAll('#editExercisesList .exercise-block').forEach(block => {
+    const exName = block.querySelector('[data-field="name"]').value.trim();
+    const muscle = block.querySelector('[data-field="muscle"]')?.value || '';
+    if (!exName) return;
+
+    block.querySelectorAll('.load-row').forEach(row => {
+      const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
+      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
+      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
+      
+      if (sets > 0 || reps > 0 || weight > 0) {
+        exercises.push({ name: exName, muscle, sets, reps, weight });
+      }
+    });
+  });
+
+  if (!exercises.length) return toast('Add at least one valid load entry!');
+
+  const muscleCounts = {};
+  exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
+  const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || workouts.find(w=>w.id===editingWorkoutId)?.muscle || '';
+
+  const idx = workouts.findIndex(w => w.id === editingWorkoutId);
+  if (idx === -1) return toast('Workout not found!');
+
+  workouts[idx] = {
+    ...workouts[idx],
+    name,
+    date,
+    duration: parseInt(document.getElementById('editWDuration').value) || 0,
+    muscle: primaryMuscle,
+    notes: document.getElementById('editWNotes').value.trim(),
+    exercises,
+  };
+
+  save();
+  updateStats();
+  renderHistory();
+  closeModal('editWorkoutModal');
+  toast('Workout updated! ✅');
+}
+
+let editingRecoveryDate = null;
+
+function openEditRecovery(date) {
+  const r = recoveryLogs.find(x => x.date === date);
+  if (!r) return;
+  editingRecoveryDate = date;
+
+  document.getElementById('editRDate').value = r.date;
+  document.getElementById('editRSleep').value = r.sleep || '';
+  document.getElementById('editRProtein').value = r.protein || '';
+  document.getElementById('editRBodyweight').value = r.bodyweight || '';
+  document.getElementById('editRZinc').checked = r.zinc || false;
+  document.getElementById('editRCreatine').checked = r.creatine || false;
+  const soreness = r.soreness || 5;
+  document.getElementById('editRSoreness').value = soreness;
+  document.getElementById('editSorenessVal').textContent = soreness;
+
+  openModal('editRecoveryModal');
+}
+
+function saveEditedRecovery() {
+  const date = document.getElementById('editRDate').value;
+  if (!date) return toast('Date is required!');
+
+  const idx = recoveryLogs.findIndex(r => r.date === editingRecoveryDate);
+  if (idx === -1) return toast('Entry not found!');
+
+  recoveryLogs[idx] = {
+    date,
+    sleep: parseFloat(document.getElementById('editRSleep').value) || 0,
+    protein: parseFloat(document.getElementById('editRProtein').value) || 0,
+    bodyweight: parseFloat(document.getElementById('editRBodyweight').value) || 0,
+    zinc: document.getElementById('editRZinc').checked,
+    creatine: document.getElementById('editRCreatine').checked,
+    soreness: parseInt(document.getElementById('editRSoreness').value) || 5,
+  };
+
+  localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
+  renderHistory();
+  closeModal('editRecoveryModal');
+  toast('Recovery log updated! ✅');
+}
