@@ -206,13 +206,17 @@ function checkAndRestoreDraft() {
           });
           
           Object.values(grouped).forEach(group => {
-            blockCount++;
-            const bid = blockCount;
-            // Generate the block HTML
+            // 1. Generate the block (this automatically increments blockCount to the correct number)
             addExerciseBlock({ name: group.name, muscle: group.muscle });
-            // Clear the default empty load row it created
-            document.getElementById('loads-' + bid).innerHTML = '';
-            // Insert the saved loads
+            
+            // 2. Grab the actual ID that was just created
+            const bid = blockCount;
+            
+            // 3. Clear the default empty load row it generated
+            const loadContainer = document.getElementById('loads-' + bid);
+            if (loadContainer) loadContainer.innerHTML = '';
+            
+            // 4. Insert your saved sets and reps from the draft
             group.loads.forEach(load => addLoadRow(bid, load));
           });
         } else {

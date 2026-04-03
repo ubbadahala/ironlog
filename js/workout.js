@@ -155,9 +155,10 @@ function updateDeltaLoad(bid, lid) {
   const recentWorkout = workouts.find(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
   if (!recentWorkout) return clearDeltas();
 
+  // THE FIX:
   const best = recentWorkout.exercises
     .filter(e => e.name.toLowerCase() === name.toLowerCase())
-    .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+    .reduce((a, b) => calculate1RM(a.weight, a.reps) >= calculate1RM(b.weight, b.reps) ? a : b);
 
   renderDeltaLabel(row.querySelector('[data-field="reps"]').parentElement, reps - best.reps, 'r');
   renderDeltaLabel(row.querySelector('[data-field="weight"]').parentElement, weight - best.weight, 'kg');
@@ -192,22 +193,27 @@ function predictLoadBlock(bid, lid) {
   if (!name) return toast('Enter exercise name first!');
 
   const weightInput = row.querySelector('[data-field="weight"]');
-  const history = workouts
-    .flatMap(w => w.exercises.map(e => ({ ...e, date: w.date })))
-    .filter(e => e.name.toLowerCase() === name.toLowerCase())
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  // THE FIX: Find workouts containing the exercise, then map them to only their best set
+  const historyWorkouts = workouts.filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()));
+    
+  if (!historyWorkouts.length) return toast('No history found. Set your own baseline!');
 
-  if (!history.length) return toast('No history found. Set your own baseline!');
+  const historyBestSets = historyWorkouts.map(w => {
+    return w.exercises
+      .filter(e => e.name.toLowerCase() === name.toLowerCase())
+      .reduce((a, b) => calculate1RM(a.weight, a.reps) >= calculate1RM(b.weight, b.reps) ? a : b);
+  });
 
-  const last = history[0];
+  const last = historyBestSets[0]; // Now this correctly points to the PR set of your last session!
   let suggestion = last.weight;
   let statusMsg = '', statusColor = 'var(--accent)';
 
-  const isStagnant = history.length >= 3 &&
-    history[0].weight === history[1].weight &&
-    history[1].weight === history[2].weight &&
-    history[0].reps <= history[1].reps;
-
+  const isStagnant = historyBestSets.length >= 3 &&
+    historyBestSets[0].weight === historyBestSets[1].weight &&
+    historyBestSets[1].weight === historyBestSets[2].weight &&
+    historyBestSets[0].reps <= historyBestSets[1].reps;
+    
   if (isStagnant) {
     suggestion = Math.floor((last.weight * 0.9) * 2) / 2;
     statusMsg = `⚠️ Stagnation detected. Deloading to ${suggestion}kg.`;

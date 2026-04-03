@@ -259,9 +259,10 @@ function peekHistoryBlock(bid) {
     .filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()))
     .slice(0, 5)
     .map(w => {
+      // THE FIX:
       const best = w.exercises
         .filter(e => e.name.toLowerCase() === name.toLowerCase())
-        .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+        .reduce((a, b) => calculate1RM(a.weight, a.reps) >= calculate1RM(b.weight, b.reps) ? a : b);
       return { date: w.date, sets: best.sets, reps: best.reps, weight: best.weight };
     });
 
@@ -302,9 +303,10 @@ function peekHistory(id) {
     .filter(w => w.exercises.some(e => e.name.toLowerCase() === name.toLowerCase()))
     .slice(0, 5)
     .map(w => {
+      // THE FIX:
       const best = w.exercises
         .filter(e => e.name.toLowerCase() === name.toLowerCase())
-        .reduce((a, b) => (a.sets * a.reps * a.weight) >= (b.sets * b.reps * b.weight) ? a : b);
+        .reduce((a, b) => calculate1RM(a.weight, a.reps) >= calculate1RM(b.weight, b.reps) ? a : b);
       return { date: w.date, sets: best.sets, reps: best.reps, weight: best.weight };
     });
 
