@@ -1073,6 +1073,7 @@ input, select, textarea {
     color: var(--muted);
     margin-top: 8px;
     text-transform: uppercase;
+    min-width: 300px;
   }
 
   /* ── REST DAY HEATMAP COLOR ── */
