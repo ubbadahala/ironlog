@@ -2,13 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
 <title>IronLog — Gym Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
+
+  <!-- ── AUTHENTICATION OVERLAY ── -->
+<div class="modal-overlay active" id="authOverlay" style="z-index: 9999; backdrop-filter: blur(24px); background: rgba(5,5,5,0.95);">
+  <div class="modal" style="max-width: 360px; text-align: center; transform: translateY(0);">
+    <div class="logo" style="margin-bottom: 8px;">Iron<span>Log</span></div>
+    <p style="font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); margin-bottom: 24px; letter-spacing:0.1em; text-transform:uppercase;">Cloud Sync Enabled</p>
+    
+    <!-- 1. The Standard Form -->
+    <div id="authFormContainer">
+      <div style="text-align: left;">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com">
+        
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••">
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top: 12px;">
+        <button class="btn btn-primary" onclick="handleLogin()" style="margin:0;">Sign In</button>
+        <button class="btn btn-ghost" onclick="handleSignUp()" style="margin:0;">Create Account</button>
+      </div>
+      
+      <div id="authError" style="color: var(--red); font-size: 0.8rem; margin-top: 16px; display: none; font-family:'DM Sans', sans-serif;"></div>
+    </div>
+
+    <!-- 2. The Success State (Hidden by Default) -->
+    <div id="authSuccessContainer" style="display: none; padding: 10px 0;">
+      <div style="font-size: 3.5rem; margin-bottom: 16px; line-height: 1;">✉️</div>
+      <div style="font-family:'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 12px;">Check Your Email</div>
+      <p style="font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5;">
+        We sent a confirmation link to <br>
+        <strong id="sentEmailAddress" style="color: var(--text);"></strong><br><br>
+        Click the link to activate your account.
+      </p>
+      <button class="btn btn-ghost" style="width: 100%;" onclick="resetAuthView()">Back to Login</button>
+    </div>
+
+  </div>
+</div>
 
 <div class="container">
   <header>
@@ -280,6 +319,22 @@
   <div class="view" id="view-settings">
 
     <div class="card glass-panel">
+      <div class="card-title" style="color:var(--accent);">Account</div>
+      
+      <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(232,255,71,0.1); color: var(--accent); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          👤
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:4px;">Logged in as</div>
+          <div id="currentUserEmail" style="font-size:0.95rem; color:var(--text); font-weight:500;">Loading...</div>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" style="width:100%; border-color: rgba(255,68,68,0.3); color: #ff7777;" onclick="handleLogout()">🚪 Log Out</button>
+    </div>
+
+    <div class="card glass-panel">
       <div class="card-title">Appearance</div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
         <div>
@@ -526,6 +581,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/auth.js"></script>
 <script src="js/state.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/ui.js"></script>
