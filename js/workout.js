@@ -283,8 +283,14 @@ async function saveWorkout(durationMins) {
   const notesStr = document.getElementById('wNotes').value.trim();
 
   try {
-    // 1. Insert Workout
-    const { data: dbWorkout, error: wErr } = await supabase
+    // 1. Build dictionary from existing cloud exercises (NEW CODE HERE)
+    const exerciseIdMap = {};
+    exercisesDB.forEach(ex => {
+        if (ex.id) exerciseIdMap[ex.name.toLowerCase()] = ex.id;
+    });
+
+    // 2. Insert Workout parent record
+    const { data: dbWorkout, error: wErr } = await supabaseClient
       .from('workouts')
       .insert({
         user_id: currentUser.id,
@@ -299,9 +305,10 @@ async function saveWorkout(durationMins) {
 
     if (wErr) throw wErr;
 
-    // 2. Insert Sets
+    // 3. Insert Sets (NEW CODE ADDED HERE)
     const setsToInsert = exercises.map((e, idx) => ({
       workout_id: dbWorkout.id,
+      exercise_id: exerciseIdMap[e.name.toLowerCase()] || null, // <-- Links the ID!
       exercise_name: e.name,
       muscle_group: e.muscle,
       sets: e.sets,
@@ -313,7 +320,7 @@ async function saveWorkout(durationMins) {
     const { error: setsErr } = await supabaseClient.from('workout_sets').insert(setsToInsert);
     if (setsErr) throw setsErr;
 
-    // 3. Update Local UI immediately
+    // 4. Update Local UI immediately
     const newWorkout = {
       id: dbWorkout.id,
       name, date, duration: durationMins || 0, muscle: primaryMuscle, notes: notesStr, exercises
@@ -488,26 +495,37 @@ async function saveEditedWorkout() {
   toast('Updating cloud... ☁️');
 
   try {
-    // 1. Update the parent workout
-    const { error: wErr } = await supabase
+    // 1. Build dictionary from existing cloud exercises (NEW CODE HERE)
+    const exerciseIdMap = {};
+    exercisesDB.forEach(ex => {
+        if (ex.id) exerciseIdMap[ex.name.toLowerCase()] = ex.id;
+    });
+
+    // 2. Update the parent workout
+    const { error: wErr } = await supabaseClient
       .from('workouts')
       .update({ name, workout_date: date, duration_minutes: duration, notes })
       .eq('id', editingWorkoutId);
     if (wErr) throw wErr;
 
-    // 2. Delete old sets
+    // 3. Delete old sets
     await supabaseClient.from('workout_sets').delete().eq('workout_id', editingWorkoutId);
 
-    // 3. Insert new sets
+    // 4. Insert new sets (NEW CODE ADDED HERE)
     const setsToInsert = exercises.map((e, idx) => ({
       workout_id: editingWorkoutId,
-      exercise_name: e.name, muscle_group: e.muscle,
-      sets: e.sets, reps: e.reps, weight_kg: e.weight, set_order: idx
+      exercise_id: exerciseIdMap[e.name.toLowerCase()] || null, // <-- Links the ID!
+      exercise_name: e.name, 
+      muscle_group: e.muscle,
+      sets: e.sets, 
+      reps: e.reps, 
+      weight_kg: e.weight, 
+      set_order: idx
     }));
     const { error: setsErr } = await supabaseClient.from('workout_sets').insert(setsToInsert);
     if (setsErr) throw setsErr;
 
-    // 4. Refresh Data
+    // 5. Refresh Data
     await syncDataFromSupabase();
     closeModal('editWorkoutModal');
     toast('Workout updated! ✅');
