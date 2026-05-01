@@ -38,9 +38,7 @@ async function importJSON() {
         
         // 1. Import Workouts
         if (imported.workouts && imported.workouts.length > 0) {
-          // We use a for...of loop to insert sequentially so we don't overwhelm the database
           for (const w of imported.workouts) {
-            // Insert parent workout
             const { data: dbW, error: wErr } = await supabaseClient
               .from('workouts')
               .insert({
@@ -53,7 +51,6 @@ async function importJSON() {
               })
               .select().single();
 
-            // Insert relational sets
             if (!wErr && w.exercises && w.exercises.length > 0) {
               const setsToInsert = w.exercises.map((ex, idx) => ({
                 workout_id: dbW.id,
@@ -81,8 +78,6 @@ async function importJSON() {
             creatine: r.creatine || false,
             soreness: r.soreness || 5
           }));
-          
-          // Using upsert ensures that if a log already exists for that date, it gets updated instead of duplicated
           await supabaseClient.from('recovery_logs').upsert(recoveryToInsert, { onConflict: 'user_id, log_date' });
         }
 
@@ -93,6 +88,39 @@ async function importJSON() {
             rest_date: rd
           }));
           await supabaseClient.from('rest_days').upsert(restsToInsert, { onConflict: 'user_id, rest_date' });
+        }
+
+        // 4. Import Custom Exercises (THE MISSING PIECE)
+        if (imported.exercises && imported.exercises.length > 0) {
+          // Check what exercises are already in the DB to prevent duplicates
+          const existingNames = exercisesDB.map(ex => ex.name.toLowerCase());
+          const exercisesToInsert = [];
+
+          for (const ex of imported.exercises) {
+            // Only add if it has a name and doesn't already exist
+            if (ex.name && !existingNames.includes(ex.name.toLowerCase())) {
+              exercisesToInsert.push({
+                user_id: currentUser.id,
+                name: ex.name,
+                muscle_group: ex.muscle || ''
+              });
+              // Add to tracker so we don't upload duplicates from within the JSON file itself
+              existingNames.push(ex.name.toLowerCase());
+            }
+          }
+
+          if (exercisesToInsert.length > 0) {
+            await supabaseClient.from('exercises').insert(exercisesToInsert);
+          }
+        }
+
+        // 5. Import Settings (Optional bonus: restores light mode & weekly targets!)
+        if (imported.weeklyTarget !== undefined || imported.lightMode !== undefined) {
+           await supabaseClient.from('user_settings').upsert({
+              user_id: currentUser.id,
+              weekly_target: imported.weeklyTarget || weeklyTarget,
+              light_mode: imported.lightMode || (document.body.classList.contains('light-mode') ? '1' : '0')
+           }, { onConflict: 'user_id' });
         }
 
         // Finalize
