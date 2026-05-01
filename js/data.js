@@ -36,7 +36,46 @@ async function importJSON() {
       const doImport = async () => {
         toast('Uploading to cloud... Please wait ⏳');
         
-        // 1. Import Workouts
+        // 1. IMPORT CUSTOM EXERCISES FIRST (So we get their IDs)
+        // We will build a dictionary to map names to IDs: { "bench press": "uuid-1234", ... }
+        const exerciseIdMap = {}; 
+        
+        // Populate the dictionary with existing exercises from the cloud
+        exercisesDB.forEach(ex => {
+            if (ex.id) exerciseIdMap[ex.name.toLowerCase()] = ex.id;
+        });
+
+        if (imported.exercises && imported.exercises.length > 0) {
+          const exercisesToInsert = [];
+
+          for (const ex of imported.exercises) {
+            // Only prepare to insert if it's new
+            if (ex.name && !exerciseIdMap[ex.name.toLowerCase()]) {
+              exercisesToInsert.push({
+                user_id: currentUser.id,
+                name: ex.name,
+                muscle_group: ex.muscle || ''
+              });
+            }
+          }
+
+          if (exercisesToInsert.length > 0) {
+             // Insert the new exercises AND return the data so we get the new IDs
+             const { data: newExData, error } = await supabaseClient
+                .from('exercises')
+                .insert(exercisesToInsert)
+                .select();
+                
+             if (!error && newExData) {
+                 // Add the brand new exercises to our dictionary
+                 newExData.forEach(ex => {
+                     exerciseIdMap[ex.name.toLowerCase()] = ex.id;
+                 });
+             }
+          }
+        }
+
+        // 2. IMPORT WORKOUTS (Now we can link the exercise_id)
         if (imported.workouts && imported.workouts.length > 0) {
           for (const w of imported.workouts) {
             const { data: dbW, error: wErr } = await supabaseClient
@@ -54,6 +93,8 @@ async function importJSON() {
             if (!wErr && w.exercises && w.exercises.length > 0) {
               const setsToInsert = w.exercises.map((ex, idx) => ({
                 workout_id: dbW.id,
+                // Look up the ID from our dictionary! If it doesn't exist, it stays null.
+                exercise_id: exerciseIdMap[(ex.name || '').toLowerCase()] || null, 
                 exercise_name: ex.name,
                 muscle_group: ex.muscle || '',
                 sets: ex.sets,
@@ -66,7 +107,7 @@ async function importJSON() {
           }
         }
 
-        // 2. Import Recovery Logs
+        // 3. Import Recovery Logs
         if (imported.recovery && imported.recovery.length > 0) {
           const recoveryToInsert = imported.recovery.map(r => ({
             user_id: currentUser.id,
@@ -81,7 +122,7 @@ async function importJSON() {
           await supabaseClient.from('recovery_logs').upsert(recoveryToInsert, { onConflict: 'user_id, log_date' });
         }
 
-        // 3. Import Rest Days
+        // 4. Import Rest Days
         if (imported.restDays && imported.restDays.length > 0) {
           const restsToInsert = imported.restDays.map(rd => ({
             user_id: currentUser.id,
@@ -90,31 +131,7 @@ async function importJSON() {
           await supabaseClient.from('rest_days').upsert(restsToInsert, { onConflict: 'user_id, rest_date' });
         }
 
-        // 4. Import Custom Exercises (THE MISSING PIECE)
-        if (imported.exercises && imported.exercises.length > 0) {
-          // Check what exercises are already in the DB to prevent duplicates
-          const existingNames = exercisesDB.map(ex => ex.name.toLowerCase());
-          const exercisesToInsert = [];
-
-          for (const ex of imported.exercises) {
-            // Only add if it has a name and doesn't already exist
-            if (ex.name && !existingNames.includes(ex.name.toLowerCase())) {
-              exercisesToInsert.push({
-                user_id: currentUser.id,
-                name: ex.name,
-                muscle_group: ex.muscle || ''
-              });
-              // Add to tracker so we don't upload duplicates from within the JSON file itself
-              existingNames.push(ex.name.toLowerCase());
-            }
-          }
-
-          if (exercisesToInsert.length > 0) {
-            await supabaseClient.from('exercises').insert(exercisesToInsert);
-          }
-        }
-
-        // 5. Import Settings (Optional bonus: restores light mode & weekly targets!)
+        // 5. Import Settings 
         if (imported.weeklyTarget !== undefined || imported.lightMode !== undefined) {
            await supabaseClient.from('user_settings').upsert({
               user_id: currentUser.id,
