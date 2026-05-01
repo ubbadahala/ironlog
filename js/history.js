@@ -64,7 +64,7 @@ function renderHistory() {
     return `
     <div class="workout-entry-wrap">
       <div class="swipe-delete-bg">Delete ✕</div>
-      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="openViewWorkout(${w.id})">
+      <div class="workout-entry glass-panel" id="we-${w.id}" onclick="openViewWorkout('${w.id}')">
         <div class="workout-entry-header">
           <div class="workout-entry-name">${w.name}</div>
           <div class="workout-meta">
