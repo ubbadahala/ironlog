@@ -22,57 +22,90 @@ function exportJSON() {
   toast('Full backup exported! 💾');
 }
 
-function importJSON() {
+async function importJSON() {
   const fileInput = document.getElementById('importFile');
   const file = fileInput.files[0];
   if (!file) return toast('Please select a JSON file first');
+  if (!currentUser) return toast('You must be logged in to import data.');
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const imported = JSON.parse(e.target.result);
       
-      const doImport = () => {
-        // Handle New Full Backup Format (Object)
-        if (imported.workouts && imported.recovery) {
-          workouts = imported.workouts;
-          recoveryLogs = imported.recovery;
-          
-          if (imported.exercises) exercisesDB = migrateExercisesDB(JSON.stringify(imported.exercises));
-          if (imported.restDays) restDays = imported.restDays;
-          if (imported.weeklyTarget !== undefined) weeklyTarget = imported.weeklyTarget;
-          
-          const isLight = imported.lightMode === '1';
-          localStorage.setItem('ironlog_light_mode', imported.lightMode || '0');
-          toggleLightMode(isLight);
-          
-          const toggleEl = document.getElementById('lightModeToggle');
-          if (toggleEl) toggleEl.checked = isLight;
-
-          localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
-          localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-          localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
-          localStorage.setItem('ironlog_weekly_target', weeklyTarget);
-        }
-        // Handle Legacy Backup Format (Simple Array)
-        else if (Array.isArray(imported)) {
-          workouts = imported;
-        }
+      const doImport = async () => {
+        toast('Uploading to cloud... Please wait ⏳');
         
-        save();
-        updateStats();
-        renderHistory();
-        renderProgress();
-        renderNutritionInsights();
-        toast('Data restored successfully! ✅');
+        // 1. Import Workouts
+        if (imported.workouts && imported.workouts.length > 0) {
+          // We use a for...of loop to insert sequentially so we don't overwhelm the database
+          for (const w of imported.workouts) {
+            // Insert parent workout
+            const { data: dbW, error: wErr } = await supabaseClient
+              .from('workouts')
+              .insert({
+                user_id: currentUser.id,
+                name: w.name,
+                workout_date: w.date,
+                duration_minutes: w.duration || 0,
+                primary_muscle: w.muscle || '',
+                notes: w.notes || ''
+              })
+              .select().single();
+
+            // Insert relational sets
+            if (!wErr && w.exercises && w.exercises.length > 0) {
+              const setsToInsert = w.exercises.map((ex, idx) => ({
+                workout_id: dbW.id,
+                exercise_name: ex.name,
+                muscle_group: ex.muscle || '',
+                sets: ex.sets,
+                reps: ex.reps,
+                weight_kg: ex.weight,
+                set_order: idx
+              }));
+              await supabaseClient.from('workout_sets').insert(setsToInsert);
+            }
+          }
+        }
+
+        // 2. Import Recovery Logs
+        if (imported.recovery && imported.recovery.length > 0) {
+          const recoveryToInsert = imported.recovery.map(r => ({
+            user_id: currentUser.id,
+            log_date: r.date,
+            sleep_hours: r.sleep || 0,
+            protein_g: r.protein || 0,
+            bodyweight_kg: r.bodyweight || 0,
+            zinc: r.zinc || false,
+            creatine: r.creatine || false,
+            soreness: r.soreness || 5
+          }));
+          
+          // Using upsert ensures that if a log already exists for that date, it gets updated instead of duplicated
+          await supabaseClient.from('recovery_logs').upsert(recoveryToInsert, { onConflict: 'user_id, log_date' });
+        }
+
+        // 3. Import Rest Days
+        if (imported.restDays && imported.restDays.length > 0) {
+          const restsToInsert = imported.restDays.map(rd => ({
+            user_id: currentUser.id,
+            rest_date: rd
+          }));
+          await supabaseClient.from('rest_days').upsert(restsToInsert, { onConflict: 'user_id, rest_date' });
+        }
+
+        // Finalize
+        await syncDataFromSupabase();
+        toast('Data restored to cloud successfully! ✅');
         fileInput.value = '';
       };
 
       showConfirm({
         icon: '⬆️',
-        title: 'Import Backup',
-        body: 'This will merge/replace your current data with the backup file. Continue?',
-        confirmLabel: 'Import',
+        title: 'Import Backup to Cloud',
+        body: 'This will upload and merge your backup file into your cloud database. Continue?',
+        confirmLabel: 'Import to Cloud',
         onConfirm: doImport
       });
     } catch (err) {
@@ -148,27 +181,31 @@ function exportCSV() {
 }
 
 function clearAllData() {
+  if (!currentUser) return toast("You must be logged in.");
+
   showConfirm({
     icon: '⚠️',
-    title: 'Delete All Data',
-    body: 'This permanently deletes all workouts, recovery logs, and custom exercises. Make sure you have exported a backup first.',
+    title: 'Wipe Cloud Data',
+    body: 'This permanently deletes ALL your workouts, recovery logs, and custom exercises from the cloud. Make sure you exported a backup first!',
     confirmLabel: 'Delete Everything',
     danger: true,
-    onConfirm: () => {
-      workouts = [];
-      recoveryLogs = [];
-      exercisesDB = [...defaultExercises];
-      save();
-      localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-      localStorage.setItem('ironlog_exercises', JSON.stringify(exercisesDB));
-      updateStats();
-      renderHistory();
-      renderRecoveryHistory();
-      renderProgress();
-      renderNutritionInsights();
-      renderSettingsExerciseList();
-      renderExerciseDB();
-      toast('All data wiped.');
+    onConfirm: async () => {
+      toast('Wiping cloud data... ⏳');
+      try {
+        // Because of Foreign Keys, delete sets first, then workouts
+        await supabaseClient.from('workout_sets').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Trick to delete all for this user via RLS
+        await supabaseClient.from('workouts').delete().eq('user_id', currentUser.id);
+        await supabaseClient.from('recovery_logs').delete().eq('user_id', currentUser.id);
+        await supabaseClient.from('rest_days').delete().eq('user_id', currentUser.id);
+        await supabaseClient.from('exercises').delete().eq('user_id', currentUser.id);
+        
+        // Resync to clear the screen
+        await syncDataFromSupabase();
+        toast('All cloud data wiped. 🗑️');
+      } catch (err) {
+        console.error(err);
+        toast('Error wiping data.');
+      }
     }
   });
 }
@@ -203,22 +240,36 @@ function renderSettingsExerciseList() {
   `).join('');
 }
 
-function addCustomExercise() {
+async function addCustomExercise() {
   const nameInput = document.getElementById('newExerciseInput');
   const muscleInput = document.getElementById('newExerciseMuscle');
   const val = nameInput.value.trim();
-  if (!val) return;
+  if (!val || !currentUser) return;
 
   const exists = exercisesDB.some(ex => ex.name.toLowerCase() === val.toLowerCase());
   if (exists) return toast('Exercise already exists!');
 
-  exercisesDB.push({ name: val, muscle: muscleInput.value });
-  exercisesDB.sort((a, b) => a.name.localeCompare(b.name));
-  saveExercises();
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .insert({ user_id: currentUser.id, name: val, muscle_group: muscleInput.value })
+      .select().single();
 
-  nameInput.value = '';
-  muscleInput.value = '';
-  toast('Exercise added! 💪');
+    if (error) throw error;
+
+    exercisesDB.push({ id: data.id, name: data.name, muscle: data.muscle_group });
+    exercisesDB.sort((a, b) => a.name.localeCompare(b.name));
+    
+    renderExerciseDB();
+    renderSettingsExerciseList();
+    
+    nameInput.value = '';
+    muscleInput.value = '';
+    toast('Exercise added to cloud! 💪');
+  } catch (err) {
+    console.error(err);
+    toast('Error saving exercise.');
+  }
 }
 
 function renameExercise(index, newName) {
@@ -258,10 +309,24 @@ function restoreDefaultExercises() {
   });
 }
 
-function saveWeeklyTarget() {
+async function saveWeeklyTarget() {
   const val = parseInt(document.getElementById('weeklyTargetInput').value) || 0;
   weeklyTarget = val;
-  localStorage.setItem('ironlog_weekly_target', val);
+  
+  if (currentUser) {
+    toast('Saving target... 🎯');
+    try {
+      await supabaseClient.from('user_settings').upsert({
+        user_id: currentUser.id,
+        weekly_target: val
+      }, { onConflict: 'user_id' });
+    } catch (err) {
+      console.error("Failed to save target:", err);
+    }
+  } else {
+    localStorage.setItem('ironlog_weekly_target', val);
+  }
+
   updateWeeklyTargetBar();
   toast(val > 0 ? `Target set: ${val.toLocaleString()} kg/week 🎯` : 'Target cleared');
 }
@@ -294,32 +359,65 @@ function updateWeeklyTargetBar() {
     : 'No target set.';
 }
 
-function saveRecovery() {
+async function saveRecovery() {
   const date = document.getElementById('rDate').value;
   if (!date) return toast('Please select a date!');
+  if (!currentUser) return toast('Not logged in!');
 
   const entry = {
-    date: date,
-    sleep: parseFloat(document.getElementById('rSleep').value) || 0,
-    protein: parseFloat(document.getElementById('rProtein').value) || 0,
-    bodyweight: parseFloat(document.getElementById('rBodyweight').value) || 0,
+    user_id: currentUser.id,
+    log_date: date,
+    sleep_hours: parseFloat(document.getElementById('rSleep').value) || null,
+    protein_g: parseFloat(document.getElementById('rProtein').value) || null,
+    bodyweight_kg: parseFloat(document.getElementById('rBodyweight').value) || null,
     zinc: document.getElementById('rZinc').checked,
     creatine: document.getElementById('rCreatine').checked,
     soreness: parseInt(document.getElementById('rSoreness').value) || 5
   };
 
-  // Check if an entry for this date already exists. 
-  // If it does, overwrite it (so you can update it later in the day). If not, add it.
-  const existingIndex = recoveryLogs.findIndex(r => r.date === date);
-  if (existingIndex >= 0) {
-    recoveryLogs[existingIndex] = entry;
-  } else {
-    recoveryLogs.unshift(entry);
-  }
+  try {
+    // Check if date exists to get the ID for updating
+    const existing = recoveryLogs.find(r => r.date === date);
+    
+    if (existing && existing.id) {
+      entry.id = existing.id; // Include ID to force an update on upsert
+    }
 
-  localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-  toast('Recovery metrics saved! 🔋');
-  
-  // Triggers haptic feedback on mobile devices for confirmation
-  if (navigator.vibrate) navigator.vibrate(100);
+    const { data, error } = await supabase
+      .from('recovery_logs')
+      .upsert(entry, { onConflict: 'user_id, log_date' }) // Assumes a unique constraint on user_id + log_date
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Update local UI
+    if (existing) {
+      Object.assign(existing, {
+        sleep: entry.sleep_hours || 0,
+        protein: entry.protein_g || 0,
+        bodyweight: entry.bodyweight_kg || 0,
+        zinc: entry.zinc,
+        creatine: entry.creatine,
+        soreness: entry.soreness
+      });
+    } else {
+      recoveryLogs.unshift({
+        id: data.id,
+        date: data.log_date,
+        sleep: entry.sleep_hours || 0,
+        protein: entry.protein_g || 0,
+        bodyweight: entry.bodyweight_kg || 0,
+        zinc: entry.zinc,
+        creatine: entry.creatine,
+        soreness: entry.soreness
+      });
+    }
+
+    toast('Recovery metrics saved! 🔋');
+    if (navigator.vibrate) navigator.vibrate(100);
+  } catch (err) {
+    console.error(err);
+    toast('Error saving recovery log.');
+  }
 }

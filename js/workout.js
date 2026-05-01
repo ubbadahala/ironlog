@@ -259,7 +259,7 @@ function collectExercises() {
   return result;
 }
 
-function saveWorkout(durationMins) {
+async function saveWorkout(durationMins) {
   const name = document.getElementById('wName').value.trim();
   const date = document.getElementById('wDate').value;
   if (!name || !date) return toast('Add a name and date!');
@@ -267,61 +267,87 @@ function saveWorkout(durationMins) {
   if (exercises.some(e => !e.name)) return toast('Please name all your exercises before saving!');
   if (!exercises.length) return toast('Add at least one exercise!');
 
-  const currentVolume = exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
+  if (!currentUser) return toast('Not logged in!');
+  toast('Saving to cloud... ☁️');
 
-  // Check for Volume PR
+  const currentVolume = exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
   const maxVolume = workouts.reduce((max, w) => {
     const v = w.exercises.reduce((a, e) => a + (e.sets * e.reps * e.weight), 0);
     return v > max ? v : max;
   }, 0);
   const isVolumePR = currentVolume > maxVolume && workouts.length > 0;
 
-  // Derive primary muscle group from exercises (most common non-empty value)
   const muscleCounts = {};
   exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
   const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || '';
+  const notesStr = document.getElementById('wNotes').value.trim();
 
-  const workout = {
-    id: Date.now(),
-    name,
-    date,
-    duration: durationMins || 0,
-    muscle: primaryMuscle,
-    notes: document.getElementById('wNotes').value.trim(),
-    exercises,
-  };
+  try {
+    // 1. Insert Workout
+    const { data: dbWorkout, error: wErr } = await supabase
+      .from('workouts')
+      .insert({
+        user_id: currentUser.id,
+        name: name,
+        workout_date: date,
+        duration_minutes: durationMins || 0,
+        primary_muscle: primaryMuscle,
+        notes: notesStr
+      })
+      .select()
+      .single();
 
-  workouts.unshift(workout);
-  save();
-  updateStats();
-  refreshWorkoutNameDB();
+    if (wErr) throw wErr;
 
-  if (isVolumePR) { triggerConfetti(); }
+    // 2. Insert Sets
+    const setsToInsert = exercises.map((e, idx) => ({
+      workout_id: dbWorkout.id,
+      exercise_name: e.name,
+      muscle_group: e.muscle,
+      sets: e.sets,
+      reps: e.reps,
+      weight_kg: e.weight,
+      set_order: idx
+    }));
 
-  // Stop session clock
-  clearInterval(sessionClockInterval);
-  sessionClockInterval = null;
-  sessionStartTime = null;
-  document.getElementById('sessionBar').classList.remove('active');
-  document.getElementById('sessionClock').textContent = '00:00';
-  const btn = document.getElementById('sessionToggleBtn');
-  btn.textContent = '▶ Start Session';
-  btn.classList.remove('running');
+    const { error: setsErr } = await supabaseClient.from('workout_sets').insert(setsToInsert);
+    if (setsErr) throw setsErr;
 
-  // Show recap
-  showRecap(workout, isVolumePR);
+    // 3. Update Local UI immediately
+    const newWorkout = {
+      id: dbWorkout.id,
+      name, date, duration: durationMins || 0, muscle: primaryMuscle, notes: notesStr, exercises
+    };
+    workouts.unshift(newWorkout);
+    
+    updateStats();
+    refreshWorkoutNameDB();
+    renderHistory();
+    if (isVolumePR) triggerConfetti();
+    
+    clearInterval(sessionClockInterval);
+    sessionClockInterval = null;
+    sessionStartTime = null;
+    document.getElementById('sessionBar').classList.remove('active');
+    document.getElementById('sessionClock').textContent = '00:00';
+    const btn = document.getElementById('sessionToggleBtn');
+    btn.textContent = '▶ Start Session';
+    btn.classList.remove('running');
 
-  // Reset form
-  document.getElementById('wName').value = '';
-  document.getElementById('wNotes').value = '';
-  document.getElementById('exercisesList').innerHTML = '';
-  blockCount = 0; loadCount = 0;
-  addExerciseBlock();
+    showRecap(newWorkout, isVolumePR);
 
-  // Hide the sticky FAB
-  document.getElementById('fabEndSession').style.display = 'none';
+    document.getElementById('wName').value = '';
+    document.getElementById('wNotes').value = '';
+    document.getElementById('exercisesList').innerHTML = '';
+    blockCount = 0; loadCount = 0;
+    addExerciseBlock();
+    document.getElementById('fabEndSession').style.display = 'none';
+    localStorage.removeItem('ironlog_draft');
 
-  localStorage.removeItem('ironlog_draft');
+  } catch (err) {
+    console.error(err);
+    toast("Database error. Workout not saved.");
+  }
 }
 
 function updateSessionVolume() {
@@ -434,12 +460,14 @@ function addEditLoadRow(bid, loadData = {}) {
   container.appendChild(row);
 }
 
-function saveEditedWorkout() {
+async function saveEditedWorkout() {
   const name = document.getElementById('editWName').value.trim();
   const date = document.getElementById('editWDate').value;
-  if (!name || !date) return toast('Name and date are required!');
+  const duration = parseInt(document.getElementById('editWDuration').value) || 0;
+  const notes = document.getElementById('editWNotes').value.trim();
+  if (!name || !date || !currentUser) return toast('Name, date, and login required!');
 
-  // Flatten the blocks back into the normal array structure
+  // Flatten blocks into array
   const exercises = [];
   document.querySelectorAll('#editExercisesList .exercise-block').forEach(block => {
     const exName = block.querySelector('[data-field="name"]').value.trim();
@@ -450,7 +478,6 @@ function saveEditedWorkout() {
       const sets = parseFloat(row.querySelector('[data-field="sets"]').value) || 0;
       const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || 0;
       const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || 0;
-      
       if (sets > 0 || reps > 0 || weight > 0) {
         exercises.push({ name: exName, muscle, sets, reps, weight });
       }
@@ -458,29 +485,36 @@ function saveEditedWorkout() {
   });
 
   if (!exercises.length) return toast('Add at least one valid load entry!');
+  toast('Updating cloud... ☁️');
 
-  const muscleCounts = {};
-  exercises.forEach(e => { if (e.muscle) muscleCounts[e.muscle] = (muscleCounts[e.muscle] || 0) + 1; });
-  const primaryMuscle = Object.keys(muscleCounts).sort((a,b) => muscleCounts[b]-muscleCounts[a])[0] || workouts.find(w=>w.id===editingWorkoutId)?.muscle || '';
+  try {
+    // 1. Update the parent workout
+    const { error: wErr } = await supabase
+      .from('workouts')
+      .update({ name, workout_date: date, duration_minutes: duration, notes })
+      .eq('id', editingWorkoutId);
+    if (wErr) throw wErr;
 
-  const idx = workouts.findIndex(w => w.id === editingWorkoutId);
-  if (idx === -1) return toast('Workout not found!');
+    // 2. Delete old sets
+    await supabaseClient.from('workout_sets').delete().eq('workout_id', editingWorkoutId);
 
-  workouts[idx] = {
-    ...workouts[idx],
-    name,
-    date,
-    duration: parseInt(document.getElementById('editWDuration').value) || 0,
-    muscle: primaryMuscle,
-    notes: document.getElementById('editWNotes').value.trim(),
-    exercises,
-  };
+    // 3. Insert new sets
+    const setsToInsert = exercises.map((e, idx) => ({
+      workout_id: editingWorkoutId,
+      exercise_name: e.name, muscle_group: e.muscle,
+      sets: e.sets, reps: e.reps, weight_kg: e.weight, set_order: idx
+    }));
+    const { error: setsErr } = await supabaseClient.from('workout_sets').insert(setsToInsert);
+    if (setsErr) throw setsErr;
 
-  save();
-  updateStats();
-  renderHistory();
-  closeModal('editWorkoutModal');
-  toast('Workout updated! ✅');
+    // 4. Refresh Data
+    await syncDataFromSupabase();
+    closeModal('editWorkoutModal');
+    toast('Workout updated! ✅');
+  } catch (err) {
+    console.error(err);
+    toast('Error updating workout.');
+  }
 }
 
 let editingRecoveryDate = null;
@@ -503,25 +537,35 @@ function openEditRecovery(date) {
   openModal('editRecoveryModal');
 }
 
-function saveEditedRecovery() {
+async function saveEditedRecovery() {
   const date = document.getElementById('editRDate').value;
-  if (!date) return toast('Date is required!');
+  if (!date || !currentUser) return toast('Date and login required!');
 
   const idx = recoveryLogs.findIndex(r => r.date === editingRecoveryDate);
-  if (idx === -1) return toast('Entry not found!');
+  if (idx === -1) return toast('Entry not found locally!');
+  const logId = recoveryLogs[idx].id;
 
-  recoveryLogs[idx] = {
-    date,
-    sleep: parseFloat(document.getElementById('editRSleep').value) || 0,
-    protein: parseFloat(document.getElementById('editRProtein').value) || 0,
-    bodyweight: parseFloat(document.getElementById('editRBodyweight').value) || 0,
-    zinc: document.getElementById('editRZinc').checked,
-    creatine: document.getElementById('editRCreatine').checked,
-    soreness: parseInt(document.getElementById('editRSoreness').value) || 5,
-  };
+  try {
+    const { error } = await supabase
+      .from('recovery_logs')
+      .update({
+        log_date: date,
+        sleep_hours: parseFloat(document.getElementById('editRSleep').value) || null,
+        protein_g: parseFloat(document.getElementById('editRProtein').value) || null,
+        bodyweight_kg: parseFloat(document.getElementById('editRBodyweight').value) || null,
+        zinc: document.getElementById('editRZinc').checked,
+        creatine: document.getElementById('editRCreatine').checked,
+        soreness: parseInt(document.getElementById('editRSoreness').value) || 5
+      })
+      .eq('id', logId);
 
-  localStorage.setItem('ironlog_recovery', JSON.stringify(recoveryLogs));
-  renderHistory();
-  closeModal('editRecoveryModal');
-  toast('Recovery log updated! ✅');
+    if (error) throw error;
+    
+    await syncDataFromSupabase();
+    closeModal('editRecoveryModal');
+    toast('Recovery log updated! ✅');
+  } catch (err) {
+    console.error(err);
+    toast('Error updating recovery log.');
+  }
 }

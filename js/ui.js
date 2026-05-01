@@ -143,31 +143,47 @@ function openViewWorkout(id) {
 // Close modal when clicking overlay background
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
+    
+    // STRICT GATEKEEPER: Prevent closing the login screen if no user is logged in
+    if (e.target.id === 'authOverlay' && typeof currentUser !== 'undefined' && !currentUser) {
+      // Optional: Add a little "shake" animation or toast here to tell them to log in
+      return; 
+    }
+    
     e.target.classList.remove('active');
   }
 });
 
-function toggleLightMode(isLight) {
+async function toggleLightMode(isLight, saveToCloud = true) {
   const toggleEl = document.getElementById('lightModeToggle');
   if (toggleEl) toggleEl.checked = isLight;
   
   if (isLight) {
     document.body.classList.add('light-mode');
-    // Inject dark gridlines and text for Light Mode charts
     Chart.defaults.color = '#6b7280';
     Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.08)';
   } else {
     document.body.classList.remove('light-mode');
-    // Revert to light gridlines and text for Dark Mode charts
     Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
     Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
   }
   
-  localStorage.setItem('ironlog_light_mode', isLight ? '1' : '0');
-  
-  // If the user is looking at the Progress tab, re-draw the charts immediately
   if (document.getElementById('view-progress').classList.contains('active')) {
     renderProgress();
+  }
+
+  // Cloud Sync Logic
+  if (saveToCloud && currentUser) {
+    try {
+      await supabaseClient.from('user_settings').upsert({
+        user_id: currentUser.id,
+        light_mode: isLight ? '1' : '0'
+      }, { onConflict: 'user_id' });
+    } catch (err) {
+      console.error("Failed to save theme to cloud:", err);
+    }
+  } else if (!currentUser) {
+    localStorage.setItem('ironlog_light_mode', isLight ? '1' : '0');
   }
 }
 

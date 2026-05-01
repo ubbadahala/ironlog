@@ -379,14 +379,48 @@ function deleteWorkout(id) {
     body: 'This workout will be permanently removed. This cannot be undone.',
     confirmLabel: 'Delete',
     danger: true,
-    onConfirm: () => {
+    onConfirm: async () => {
+      // Supabase cascade delete will handle the workout_sets if foreign keys are setup properly.
+      // Otherwise, delete sets first, then workout.
+      const { error: setsErr } = await supabaseClient.from('workout_sets').delete().eq('workout_id', id);
+      const { error: wErr } = await supabaseClient.from('workouts').delete().eq('id', id);
+      
+      if (wErr) {
+        toast("Failed to delete from cloud.");
+        return;
+      }
+
       workouts = workouts.filter(w => w.id !== id);
-      save();
       updateStats();
       renderHistory();
-      toast('Workout deleted');
+      toast('Workout deleted 🗑️');
     }
   });
+}
+
+async function logRestDay() {
+  const todayStr = getLocalDateString();
+  let selectedDate = document.getElementById('wDate').value || todayStr;
+  const dateLabel = (selectedDate === todayStr) ? 'today' : formatDate(selectedDate);
+
+  if (restDays.includes(selectedDate)) {
+    return toast(`Rest day already logged for ${dateLabel}.`);
+  }
+
+  const { error } = await supabaseClient.from('rest_days').insert({
+    user_id: currentUser.id,
+    rest_date: selectedDate
+  });
+
+  if (error) {
+    console.error(error);
+    return toast("Error logging rest day.");
+  }
+
+  restDays.push(selectedDate);
+  updateStats();
+  renderHistory();
+  toast(`Rest day logged for ${dateLabel} 🛌`);
 }
 
 function removeRestDay(date) {
@@ -396,37 +430,21 @@ function removeRestDay(date) {
     body: `Delete the rest day logged on ${formatDate(date)}?`,
     confirmLabel: 'Remove',
     danger: true,
-    onConfirm: () => {
+    onConfirm: async () => {
+      const { error } = await supabaseClient
+        .from('rest_days')
+        .delete()
+        .match({ user_id: currentUser.id, rest_date: date });
+
+      if (error) return toast("Failed to delete rest day.");
+
       restDays = restDays.filter(d => d !== date);
-      localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
       updateStats();
       renderHistory();
-      renderProgress(); // Updates the heatmap immediately
+      renderProgress();
       toast('Rest day removed');
     }
   });
-}
-
-function logRestDay() {
-  const todayStr = getLocalDateString();
-  let selectedDate = document.getElementById('wDate').value;
-  
-  if (!selectedDate) {
-    selectedDate = todayStr;
-  }
-
-  // Determine the friendly name for the toast
-  const dateLabel = (selectedDate === todayStr) ? 'today' : formatDate(selectedDate);
-
-  if (restDays.includes(selectedDate)) {
-    return toast(`Rest day already logged for ${dateLabel}.`);
-  }
-
-  restDays.push(selectedDate);
-  localStorage.setItem('ironlog_rest_days', JSON.stringify(restDays));
-  updateStats();
-  
-  toast(`Rest day logged for ${dateLabel} 🛌`);
 }
 
 function showRecap(workout, isVolumePR) {
