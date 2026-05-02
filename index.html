@@ -457,6 +457,27 @@
       <div id="authError" style="color: #ff4d4d; background: rgba(255, 77, 77, 0.1); padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-top: 16px; display: none; border: 1px solid rgba(255, 77, 77, 0.2);"></div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- VIEW 3: THE SUCCESS SCREEN                 -->
+    <!-- ========================================== -->
+    <div id="authSuccessContainer" class="fade-view" style="display: none; padding: 20px 0;">
+      <div style="font-size: 4rem; margin-bottom: 16px; line-height: 1; animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✉️</div>
+      
+      <!-- Match the new branding -->
+      <div style="font-family: 'DM Mono', monospace; font-size: 1.5rem; font-weight: bold; color: #d4ff00; letter-spacing: 0.05em; margin-bottom: 12px; text-transform: uppercase;">
+        Check Your Email
+      </div>
+      
+      <p style="font-size: 0.95rem; color: var(--muted); margin-bottom: 32px; line-height: 1.6;">
+        We sent a confirmation link to <br>
+        <strong id="sentEmailAddress" style="color: var(--text); font-size: 1.1rem;"></strong><br><br>
+        Click the link to activate your ledger.
+      </p>
+      
+      <!-- Uses the existing switchAuthView function to go back -->
+      <button class="btn btn-ghost" style="width: 100%; border-radius: 12px; padding: 14px;" onclick="switchAuthView('welcome')">Back to Start</button>
+    </div>
+
   </div>
 </div>
 

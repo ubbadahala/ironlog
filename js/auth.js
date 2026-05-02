@@ -85,7 +85,8 @@ async function handleSignUp() {
     return;
   }
 
-  toast("Creating account... ⏳");
+  // Optional: If you use a toast notification function, keep this!
+  if (typeof toast === 'function') toast("Creating account... ⏳");
   
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
   
@@ -99,19 +100,19 @@ async function handleSignUp() {
       // User logged in immediately (Email Confirmation is OFF in Supabase)
       currentUser = data.session.user;
       updateAccountUI();
+      
+      // Close the modal and bring the app out of the background
       document.getElementById('authOverlay').classList.remove('active');
+      document.getElementById('mainAppContent')?.classList.remove('app-background-scaled');
+      
       await syncDataFromSupabase();
-      toast("Account created! Welcome to CtrlSet 🎉");
+      if (typeof toast === 'function') toast("Account created! Welcome to CTRLSET 🎉");
     } else {
       // User must confirm email (Email Confirmation is ON in Supabase)
       document.getElementById('authPassword').value = ''; // Clear password for security
       
-      // Inject the email they typed into the success message
-      document.getElementById('sentEmailAddress').textContent = email;
-      
-      // Swap the UI views
-      document.getElementById('authFormContainer').style.display = 'none';
-      document.getElementById('authSuccessContainer').style.display = 'block';
+      // 👉 MAGIC HAPPENS HERE: Use the new UI controller
+      switchAuthView('success', email);
     }
   }
 }

@@ -277,9 +277,10 @@ function togglePassword() {
   }
 }
 
-function switchAuthView(targetView) {
+function switchAuthView(targetView, email = '') {
   const welcomeView = document.getElementById('authWelcomeView');
   const formView = document.getElementById('authFormView');
+  const successView = document.getElementById('authSuccessContainer'); // 👉 Added this
   const submitBtn = document.getElementById('authSubmitBtn');
   const subtitle = document.getElementById('authFormSubtitle');
   const errorEl = document.getElementById('authError');
@@ -287,44 +288,43 @@ function switchAuthView(targetView) {
   // Clear any old errors
   if (errorEl) errorEl.style.display = 'none';
 
-  if (targetView === 'welcome') {
-    // Hide form, show welcome
+  // Helper to safely hide all views
+  const hideAllViews = () => {
+    welcomeView.classList.remove('active-view');
     formView.classList.remove('active-view');
-    setTimeout(() => {
-      formView.style.display = 'none';
+    if (successView) successView.classList.remove('active-view');
+  };
+
+  hideAllViews();
+
+  setTimeout(() => {
+    welcomeView.style.display = 'none';
+    formView.style.display = 'none';
+    if (successView) successView.style.display = 'none';
+
+    if (targetView === 'welcome') {
       welcomeView.style.display = 'block';
-      // Small delay to allow display:block to apply before animating opacity
       setTimeout(() => welcomeView.classList.add('active-view'), 10); 
-    }, 300); // Wait for fade out
-  } 
-  
-  else if (targetView === 'login') {
-    // Setup form for Logging In
-    submitBtn.textContent = 'Sign In';
-    submitBtn.onclick = handleLogin;
-    subtitle.textContent = 'Sign In to Continue';
-    
-    // Hide welcome, show form
-    welcomeView.classList.remove('active-view');
-    setTimeout(() => {
-      welcomeView.style.display = 'none';
+    } 
+    else if (targetView === 'login') {
+      submitBtn.textContent = 'Sign In';
+      submitBtn.onclick = handleLogin;
+      subtitle.textContent = 'Sign In to Continue';
       formView.style.display = 'block';
       setTimeout(() => formView.classList.add('active-view'), 10);
-    }, 300);
-  } 
-  
-  else if (targetView === 'signup') {
-    // Setup form for Creating an Account
-    submitBtn.textContent = 'Create Account';
-    submitBtn.onclick = handleSignUp; // Assuming you have a handleSignUp() function!
-    subtitle.textContent = 'Create Your Ledger';
-    
-    // Hide welcome, show form
-    welcomeView.classList.remove('active-view');
-    setTimeout(() => {
-      welcomeView.style.display = 'none';
+    } 
+    else if (targetView === 'signup') {
+      submitBtn.textContent = 'Create Account';
+      submitBtn.onclick = handleSignUp;
+      subtitle.textContent = 'Create Your Ledger';
       formView.style.display = 'block';
       setTimeout(() => formView.classList.add('active-view'), 10);
-    }, 300);
-  }
+    }
+    // 👉 THE NEW SUCCESS STATE
+    else if (targetView === 'success') {
+      if (email) document.getElementById('sentEmailAddress').textContent = email;
+      successView.style.display = 'block';
+      setTimeout(() => successView.classList.add('active-view'), 10);
+    }
+  }, 300);
 }
