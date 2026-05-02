@@ -11,13 +11,13 @@ function exportJSON() {
     exercises: exercisesDB,
     restDays: restDays,
     weeklyTarget: weeklyTarget,
-    lightMode: localStorage.getItem('ironlog_light_mode') || '0'
+    lightMode: localStorage.getItem('ctrlset_light_mode') || '0'
   };
 
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
   const dlAnchorElem = document.createElement('a');
   dlAnchorElem.setAttribute("href", dataStr);
-  dlAnchorElem.setAttribute("download", `ironlog_full_backup_${getLocalDateString()}.json`);
+  dlAnchorElem.setAttribute("download", `ctrlset_full_backup_${getLocalDateString()}.json`);
   dlAnchorElem.click();
   toast('Full backup exported! 💾');
 }
@@ -218,7 +218,7 @@ function exportCSV() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `ironlog_export_${getLocalDateString()}.csv`);
+  link.setAttribute("download", `ctrlset_export_${getLocalDateString()}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -369,7 +369,7 @@ async function saveWeeklyTarget() {
       console.error("Failed to save target:", err);
     }
   } else {
-    localStorage.setItem('ironlog_weekly_target', val);
+    localStorage.setItem('ctrlset_weekly_target', val);
   }
 
   updateWeeklyTargetBar();

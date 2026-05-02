@@ -349,7 +349,7 @@ async function saveWorkout(durationMins) {
     blockCount = 0; loadCount = 0;
     addExerciseBlock();
     document.getElementById('fabEndSession').style.display = 'none';
-    localStorage.removeItem('ironlog_draft');
+    localStorage.removeItem('ctrlset_draft');
 
   } catch (err) {
     console.error(err);

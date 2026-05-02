@@ -146,7 +146,7 @@ function cancelSession() {
       toast('Session cancelled');
       // Hide the sticky FAB
       document.getElementById('fabEndSession').style.display = 'none';
-      localStorage.removeItem('ironlog_draft');
+      localStorage.removeItem('ctrlset_draft');
     }
   });
 }
@@ -174,11 +174,11 @@ function saveDraft() {
     startTime: sessionStartTime.getTime(), // Save the exact time it started
     exercises: collectExercises()
   };
-  localStorage.setItem('ironlog_draft', JSON.stringify(draft));
+  localStorage.setItem('ctrlset_draft', JSON.stringify(draft));
 }
 
 function checkAndRestoreDraft() {
-  const draftStr = localStorage.getItem('ironlog_draft');
+  const draftStr = localStorage.getItem('ctrlset_draft');
   if (!draftStr) return;
 
   showConfirm({
@@ -242,11 +242,11 @@ function checkAndRestoreDraft() {
         
         toast('Draft restored!');
       } catch (e) {
-        localStorage.removeItem('ironlog_draft');
+        localStorage.removeItem('ctrlset_draft');
       }
     },
     onCancel: () => {
-      localStorage.removeItem('ironlog_draft');
+      localStorage.removeItem('ctrlset_draft');
       toast('Draft discarded.');
     }
   });

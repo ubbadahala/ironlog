@@ -1,6 +1,6 @@
-# 🏋️ IronLog: Cloud-Native Gym Tracker
+# 🏋️ CtrlSet: Cloud-Native Gym Tracker
 
-IronLog is a lightning-fast, Single Page Application (SPA) built for tracking workouts, recovery metrics, and personal records. Originally built as an offline-first `localStorage` app, IronLog v4.0 has been completely re-architected to be a fully cloud-synced platform powered by Supabase.
+CtrlSet is a lightning-fast, Single Page Application (SPA) built for tracking workouts, recovery metrics, and personal records. Originally built as an offline-first `localStorage` app, CtrlSet v4.0 has been completely re-architected to be a fully cloud-synced platform powered by Supabase.
 
 ## 🚀 The v4.0 Cloud Migration Updates
 

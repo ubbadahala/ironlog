@@ -101,7 +101,7 @@ async function handleSignUp() {
       updateAccountUI();
       document.getElementById('authOverlay').classList.remove('active');
       await syncDataFromSupabase();
-      toast("Account created! Welcome to IronLog 🎉");
+      toast("Account created! Welcome to CtrlSet 🎉");
     } else {
       // User must confirm email (Email Confirmation is ON in Supabase)
       document.getElementById('authPassword').value = ''; // Clear password for security

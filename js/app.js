@@ -62,14 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
     now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   // Restore light mode preference
-  if (localStorage.getItem('ironlog_light_mode') === '1') {
+  if (localStorage.getItem('ctrlset_light_mode') === '1') {
     document.body.classList.add('light-mode');
     const toggle = document.getElementById('lightModeToggle');
     if (toggle) toggle.checked = true;
   }
 
   // Restore weekly target
-  const storedTarget = parseInt(localStorage.getItem('ironlog_weekly_target') || '0');
+  const storedTarget = parseInt(localStorage.getItem('ctrlset_weekly_target') || '0');
   weeklyTarget = storedTarget;
   const targetInput = document.getElementById('weeklyTargetInput');
   if (targetInput && storedTarget) targetInput.value = storedTarget;

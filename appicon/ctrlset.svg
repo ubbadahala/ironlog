@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Pitch Black Apple-Style Background -->
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  
+  <!-- The 'C' (Pure White) -->
+  <rect x="120" y="136" width="56" height="240" fill="#ffffff"/>
+  <rect x="120" y="136" width="112" height="56" fill="#ffffff"/>
+  <rect x="120" y="320" width="112" height="56" fill="#ffffff"/>
+
+  <!-- The 'S' (Neon Green) -->
+  <rect x="256" y="136" width="136" height="56" fill="#4ade80"/>
+  <rect x="256" y="136" width="56" height="148" fill="#4ade80"/>
+  <rect x="256" y="228" width="136" height="56" fill="#4ade80"/>
+  <rect x="336" y="228" width="56" height="148" fill="#4ade80"/>
+  <rect x="256" y="320" width="136" height="56" fill="#4ade80"/>
+</svg>

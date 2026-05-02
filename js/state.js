@@ -4,7 +4,7 @@
 let recoveryLogs = [];
 let workouts = [];
 let restDays = []; 
-let weeklyTarget = parseInt(localStorage.getItem('ironlog_weekly_target') || '0');
+let weeklyTarget = parseInt(localStorage.getItem('ctrlset_weekly_target') || '0');
 
 let chartInstance = null;
 let strengthChartInstance = null;

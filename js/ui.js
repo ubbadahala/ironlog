@@ -247,7 +247,7 @@ async function toggleLightMode(isLight, saveToCloud = true) {
       console.error("Failed to save theme to cloud:", err);
     }
   } else if (!currentUser) {
-    localStorage.setItem('ironlog_light_mode', isLight ? '1' : '0');
+    localStorage.setItem('ctrlset_light_mode', isLight ? '1' : '0');
   }
 }
 

@@ -42,7 +42,7 @@ function renderHistory() {
     list.innerHTML = `
       <div style="text-align: center; padding: 60px 20px; animation: fadeIn 0.5s ease;">
         <div style="font-size: 3.5rem; margin-bottom: 16px; filter: grayscale(1) opacity(0.5);">🏋️</div>
-        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--text); letter-spacing: 0.05em; margin-bottom: 8px;">The Iron Awaits</h3>
+        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--text); letter-spacing: 0.05em; margin-bottom: 8px;">The CtrlSet Awaits</h3>
         <p style="font-size: 0.95rem; color: var(--muted); line-height: 1.5; max-width: 250px; margin: 0 auto;">
           ${isTotallyEmpty 
             ? 'You haven\'t logged any workouts yet. Hit "Start Session" to begin building your legacy.' 
@@ -590,7 +590,7 @@ function shareWorkout(id) {
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 30px;">
         <div>
           <div style="font-family:'Bebas Neue', sans-serif; font-size:3.5rem; letter-spacing:0.08em; color:var(--accent); margin-bottom:5px; line-height:1; text-shadow: 0 0 20px rgba(232,255,71,0.2);">
-            Iron<span style="color:${textColor}">Log</span>
+            Ctrl<span style="color:${textColor}">Set</span>
           </div>
           <div style="font-family:'DM Mono', monospace; font-size:0.85rem; letter-spacing:0.1em; color:${mutedColor}; text-transform:uppercase;">
             ${formatDate(w.date)}
@@ -647,7 +647,7 @@ function shareWorkout(id) {
       useCORS: true
     }).then(canvas => {
       const link = document.createElement('a');
-      link.download = `ironlog-${w.date.replace(/-/g, '')}.jpg`;
+      link.download = `ctrlset-${w.date.replace(/-/g, '')}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
       toast('Poster saved! Ready for Instagram. 📸');
