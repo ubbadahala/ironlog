@@ -1,6 +1,37 @@
 let _confirmCallback = null;
 let _cancelCallback = null;
 
+// HELPER: Rolls numbers up smoothly
+function animateValue(elementId, endValue, duration = 800) {
+  const obj = document.getElementById(elementId);
+  if (!obj) return;
+  
+  // Strip out commas if there are any to get the current integer
+  const currentText = obj.innerText.replace(/,/g, '');
+  const startValue = parseInt(currentText) || 0;
+  
+  if (startValue === endValue) return; // Don't animate if nothing changed
+
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    
+    // Calculate the ease-out curve so it slows down elegantly at the end
+    const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+    const currentNum = Math.floor(easeOutQuart * (endValue - startValue) + startValue);
+    
+    obj.innerHTML = currentNum.toLocaleString();
+    
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      obj.innerHTML = endValue.toLocaleString(); // Ensure it ends perfectly on the exact number
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
 function showConfirm({ icon = '', title, body, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel = null }) {
   document.getElementById('confirmIcon').textContent = icon;
   document.getElementById('confirmIcon').style.display = icon ? 'block' : 'none';
@@ -37,25 +68,43 @@ function dismissConfirm() {
   if (cb) cb();
 }
 
-function toast(msg) {
-  const el = document.getElementById('toast');
-  const fab = document.getElementById('fabEndSession');
-  
-  // Check if the End Session button is currently visible
-  if (fab && fab.style.display !== 'none') {
-    el.classList.add('lifted');
-  } else {
-    el.classList.remove('lifted');
+function toast(msg, icon = '') {
+  // 1. Get or create the container
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    document.body.appendChild(container);
   }
 
-  el.textContent = msg;
-  el.classList.add('show');
+  // 2. Your FAB Avoidance Logic applied to the Container
+  const fab = document.getElementById('fabEndSession');
+  if (fab && fab.style.display !== 'none') {
+    container.classList.add('lifted');
+  } else {
+    container.classList.remove('lifted');
+  }
+
+  // 3. Create the Premium Pill
+  const el = document.createElement('div');
+  el.className = 'toast-pill';
+  el.innerHTML = `${icon ? `<span style="font-size: 1.1em;">${icon}</span>` : ''} <span>${msg}</span>`;
   
-  // Clean up after it fades out
+  // 4. Add to screen
+  container.appendChild(el);
+
+  // 5. Clean up after 2.8 seconds
   setTimeout(() => {
-    el.classList.remove('show');
-    // Optional: wait for fade animation to finish before removing the lift
-    setTimeout(() => el.classList.remove('lifted'), 400); 
+    el.classList.add('fade-out');
+    // Wait for the fade animation to finish before destroying the HTML element
+    el.addEventListener('animationend', () => {
+      el.remove();
+      
+      // Optional: If no toasts are left, remove the lifted class
+      if (container.children.length === 0) {
+        container.classList.remove('lifted');
+      }
+    });
   }, 2800);
 }
 
@@ -78,10 +127,25 @@ let editingWorkoutId = null;
 let editExerciseCount = 0;
 
 function openModal(id) {
+  // 1. Show the specific modal
   document.getElementById(id).classList.add('active');
+  
+  // 2. Shrink the main app background into the distance
+  const mainApp = document.getElementById('mainAppContent');
+  if (mainApp) {
+    mainApp.classList.add('app-background-scaled');
+  }
 }
+
 function closeModal(id) {
+  // 1. Hide the specific modal
   document.getElementById(id).classList.remove('active');
+  
+  // 2. Bring the main app background back to the front
+  const mainApp = document.getElementById('mainAppContent');
+  if (mainApp) {
+    mainApp.classList.remove('app-background-scaled');
+  }
 }
 
 function openViewWorkout(id) {
@@ -196,5 +260,71 @@ function triggerConfetti() {
     div.style.animationDelay = Math.random() * 2 + 's';
     document.body.appendChild(div);
     setTimeout(() => div.remove(), 3000);
+  }
+}
+
+// Function to toggle password visibility safely
+function togglePassword() {
+  const pwdInput = document.getElementById('authPassword');
+  const toggleIcon = document.getElementById('togglePasswordVisibility');
+  
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    toggleIcon.textContent = '🔒'; // Changes to a lock when visible
+  } else {
+    pwdInput.type = 'password';
+    toggleIcon.textContent = '👁️'; // Changes back to eye when hidden
+  }
+}
+
+function switchAuthView(targetView) {
+  const welcomeView = document.getElementById('authWelcomeView');
+  const formView = document.getElementById('authFormView');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  const subtitle = document.getElementById('authFormSubtitle');
+  const errorEl = document.getElementById('authError');
+
+  // Clear any old errors
+  if (errorEl) errorEl.style.display = 'none';
+
+  if (targetView === 'welcome') {
+    // Hide form, show welcome
+    formView.classList.remove('active-view');
+    setTimeout(() => {
+      formView.style.display = 'none';
+      welcomeView.style.display = 'block';
+      // Small delay to allow display:block to apply before animating opacity
+      setTimeout(() => welcomeView.classList.add('active-view'), 10); 
+    }, 300); // Wait for fade out
+  } 
+  
+  else if (targetView === 'login') {
+    // Setup form for Logging In
+    submitBtn.textContent = 'Sign In';
+    submitBtn.onclick = handleLogin;
+    subtitle.textContent = 'Sign In to Continue';
+    
+    // Hide welcome, show form
+    welcomeView.classList.remove('active-view');
+    setTimeout(() => {
+      welcomeView.style.display = 'none';
+      formView.style.display = 'block';
+      setTimeout(() => formView.classList.add('active-view'), 10);
+    }, 300);
+  } 
+  
+  else if (targetView === 'signup') {
+    // Setup form for Creating an Account
+    submitBtn.textContent = 'Create Account';
+    submitBtn.onclick = handleSignUp; // Assuming you have a handleSignUp() function!
+    subtitle.textContent = 'Create Your Ledger';
+    
+    // Hide welcome, show form
+    welcomeView.classList.remove('active-view');
+    setTimeout(() => {
+      welcomeView.style.display = 'none';
+      formView.style.display = 'block';
+      setTimeout(() => formView.classList.add('active-view'), 10);
+    }, 300);
   }
 }

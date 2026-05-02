@@ -22,13 +22,24 @@ function updateAccountUI() {
 
 async function checkSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
+  
   if (session) {
     currentUser = session.user;
     updateAccountUI();
+    
+    // 1. Hide the auth modal
     document.getElementById('authOverlay').classList.remove('active');
+    
+    // 👉 2. BRING APP TO THE FRONT
+    document.getElementById('mainAppContent')?.classList.remove('app-background-scaled');
+    
     await syncDataFromSupabase(); 
   } else {
+    // 1. Show the auth modal
     document.getElementById('authOverlay').classList.add('active');
+    
+    // 👉 2. PUSH APP TO THE BACKGROUND
+    document.getElementById('mainAppContent')?.classList.add('app-background-scaled');
   }
 }
 
@@ -52,7 +63,13 @@ async function handleLogin() {
     errorEl.style.display = 'none';
     currentUser = data.user;
     updateAccountUI();
+    
+    // 1. Hide the Auth Modal
     document.getElementById('authOverlay').classList.remove('active');
+    
+    // 👉 2. BRING THE APP TO THE FRONT!
+    document.getElementById('mainAppContent')?.classList.remove('app-background-scaled');
+    
     await syncDataFromSupabase();
   }
 }
@@ -142,10 +159,18 @@ async function handleLogout() {
     document.getElementById('fabEndSession').style.display = 'none';
   }
 
-  // 6. Show the login modal and clear inputs
+  // 👉 6. Close the settings modal so the background app is clean
+  // (Change 'settingsModal' if your modal has a different ID)
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) settingsModal.classList.remove('active');
+
+  // 7. Show the login modal and clear inputs
   document.getElementById('authOverlay').classList.add('active');
   document.getElementById('authPassword').value = '';
   document.getElementById('authEmail').value = '';
+  
+  // 👉 8. PUSH THE APP INTO THE BACKGROUND
+  document.getElementById('mainAppContent')?.classList.add('app-background-scaled');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

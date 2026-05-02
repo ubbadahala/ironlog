@@ -3,6 +3,8 @@ function renderHistory() {
   const muscleFilter = document.getElementById('historyMuscleFilter')?.value || '';
   const sortOrder = document.getElementById('historySortOrder')?.value || 'newest';
   const list = document.getElementById('historyList');
+  
+  if (!list) return;
 
   // 1. Filter Workouts
   let filteredWorkouts = workouts.filter(w =>
@@ -34,8 +36,20 @@ function renderHistory() {
     combined.sort((a, b) => new Date(b.type === 'rest' ? b.date : b.data.date) - new Date(a.type === 'rest' ? a.date : a.data.date));
   }
 
+  // --- THE INTENTIONAL EMPTY STATE (Smart Version) ---
   if (!combined.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div>No activity found.</div>`;
+    const isTotallyEmpty = workouts.length === 0;
+    list.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; animation: fadeIn 0.5s ease;">
+        <div style="font-size: 3.5rem; margin-bottom: 16px; filter: grayscale(1) opacity(0.5);">🏋️</div>
+        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--text); letter-spacing: 0.05em; margin-bottom: 8px;">The Iron Awaits</h3>
+        <p style="font-size: 0.95rem; color: var(--muted); line-height: 1.5; max-width: 250px; margin: 0 auto;">
+          ${isTotallyEmpty 
+            ? 'You haven\'t logged any workouts yet. Hit "Start Session" to begin building your legacy.' 
+            : 'No activity matches your current filters or search.'}
+        </p>
+      </div>
+    `;
     return;
   }
 
@@ -89,6 +103,19 @@ function renderHistory() {
       if (el) attachSwipeDelete(el, item.data.id);
     }
   });
+}
+
+// --- HELPER TO SHOW SKELETONS DURING CLOUD SYNC ---
+function showHistorySkeletons() {
+  const container = document.getElementById('historyList');
+  if (container) {
+    container.innerHTML = `
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card" style="opacity: 0.5;"></div>
+    `;
+  }
 }
 
 function renderRecoveryHistory() {

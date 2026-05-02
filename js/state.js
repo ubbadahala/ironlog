@@ -37,6 +37,7 @@ let exercisesDB = [...defaultExercises];
 // Master Sync Function
 async function syncDataFromSupabase() {
   if (!currentUser) return;
+  showHistorySkeletons();
   toast("Syncing data... ⏳");
 
   try {

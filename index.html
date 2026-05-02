@@ -3,53 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-<title>IronLog — Gym Tracker</title>
+<title>IronLog — Track Heavy, Lift Heavier</title>
+<!-- The Standard SVG Favicon -->
+<link rel="icon" type="image/svg+xml" href="/appicon/ironlog.svg">
+<!-- Fallback for older browsers -->
+<link rel="icon" type="image/png" href="/appicon/ironlog.svg">
+<!-- The iOS Apple Touch Icon (Crucial for the native app feel!) -->
+<link rel="apple-touch-icon" href="/appicon/ironlog.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- ── AUTHENTICATION OVERLAY ── -->
-<div class="modal-overlay active" id="authOverlay" style="z-index: 9999; backdrop-filter: blur(24px); background: rgba(5,5,5,0.95);">
-  <div class="modal" style="max-width: 360px; text-align: center; transform: translateY(0);">
-    <div class="logo" style="margin-bottom: 8px;">Iron<span>Log</span></div>
-    <p style="font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); margin-bottom: 24px; letter-spacing:0.1em; text-transform:uppercase;">Cloud Sync Enabled</p>
-    
-    <!-- 1. The Standard Form -->
-    <div id="authFormContainer">
-      <div style="text-align: left;">
-        <label>Email</label>
-        <input type="email" id="authEmail" placeholder="you@example.com">
-        
-        <label>Password</label>
-        <input type="password" id="authPassword" placeholder="••••••••">
-      </div>
-      
-      <div style="display:flex; flex-direction:column; gap:12px; margin-top: 12px;">
-        <button class="btn btn-primary" onclick="handleLogin()" style="margin:0;">Sign In</button>
-        <button class="btn btn-ghost" onclick="handleSignUp()" style="margin:0;">Create Account</button>
-      </div>
-      
-      <div id="authError" style="color: var(--red); font-size: 0.8rem; margin-top: 16px; display: none; font-family:'DM Sans', sans-serif;"></div>
-    </div>
-
-    <!-- 2. The Success State (Hidden by Default) -->
-    <div id="authSuccessContainer" style="display: none; padding: 10px 0;">
-      <div style="font-size: 3.5rem; margin-bottom: 16px; line-height: 1;">✉️</div>
-      <div style="font-family:'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 12px;">Check Your Email</div>
-      <p style="font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5;">
-        We sent a confirmation link to <br>
-        <strong id="sentEmailAddress" style="color: var(--text);"></strong><br><br>
-        Click the link to activate your account.
-      </p>
-      <button class="btn btn-ghost" style="width: 100%;" onclick="resetAuthView()">Back to Login</button>
-    </div>
-
-  </div>
-</div>
-
-<div class="container">
+<div id="mainAppContent" class="container">
   <header>
     <div class="logo">Iron<span>Log</span></div>
     <div class="date-display" id="dateDisplay"></div>
@@ -429,6 +396,61 @@
       <button class="btn btn-primary" style="flex:1;" onclick="closeRecap()">Done ✓</button>
       <button class="btn btn-ghost" style="flex:1;" onclick="closeRecapAndGoHistory()">View in History</button>
     </div>
+  </div>
+</div>
+
+<!-- ── AUTHENTICATION & WELCOME OVERLAY ── -->
+<div class="modal-overlay active" id="authOverlay" style="z-index: 9999; background: rgba(5,5,5,0.85); backdrop-filter: blur(12px);">
+  <div class="auth-modal" style="position: relative; overflow: hidden;">
+    
+    <!-- ========================================== -->
+    <!-- VIEW 1: THE WELCOME SCREEN                 -->
+    <!-- ========================================== -->
+    <div id="authWelcomeView" class="fade-view active-view">
+      <div style="font-size: 3.5rem; margin-bottom: 10px;">🏋️‍♂️</div>
+      <div class="logo" style="margin-bottom: 8px; font-size: 2.8rem;">Iron<span>Log</span></div>
+      <p style="font-size: 1rem; color: var(--text); font-weight: 500; margin-bottom: 8px;">Track heavy. Lift heavier.</p>
+      <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 40px; line-height: 1.5;">Your personal lifting ledger, <br>synced seamlessly to the cloud.</p>
+      
+      <button class="btn btn-auth btn-auth-primary" onclick="switchAuthView('signup')">Get Started</button>
+      <button class="btn btn-ghost" onclick="switchAuthView('login')" style="width: 100%; border-radius: 12px; padding: 14px; margin-top: 8px;">I already have an account</button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: THE FORM SCREEN (Hidden initially) -->
+    <!-- ========================================== -->
+    <div id="authFormView" class="fade-view" style="display: none;">
+      
+      <!-- Back Button -->
+      <div style="text-align: left; margin-bottom: 20px;">
+        <button onclick="switchAuthView('welcome')" style="background:none; border:none; color:var(--muted); font-size:0.9rem; cursor:pointer; padding: 5px 0;">← Back</button>
+      </div>
+
+      <!-- Smaller Branding for Form -->
+      <div class="logo" style="margin-bottom: 4px; font-size: 1.8rem;">Iron<span>Log</span></div>
+      <p id="authFormSubtitle" style="font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); margin-bottom: 24px; letter-spacing:0.1em; text-transform:uppercase;">Sign In to Continue</p>
+      
+      <!-- Email Input -->
+      <div class="input-group">
+        <input type="email" id="authEmail" placeholder=" "> 
+        <label for="authEmail">Email Address</label>
+      </div>
+      
+      <!-- Password Input (With Safe Toggle) -->
+      <div class="input-group">
+        <input type="password" id="authPassword" placeholder=" " style="padding-right: 45px;">
+        <label for="authPassword">Password</label>
+        <span class="password-toggle-icon" id="togglePasswordVisibility" onclick="togglePassword()">👁️</span>
+      </div>
+      
+      <!-- Action Button -->
+      <div style="margin-top: 24px;">
+        <button id="authSubmitBtn" class="btn btn-auth btn-auth-primary" onclick="handleLogin()">Sign In</button>
+      </div>
+      
+      <div id="authError" style="color: #ff4d4d; background: rgba(255, 77, 77, 0.1); padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-top: 16px; display: none; border: 1px solid rgba(255, 77, 77, 0.2);"></div>
+    </div>
+
   </div>
 </div>
 

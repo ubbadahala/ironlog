@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Pitch Black Background -->
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  
+  <!-- The 'I' in pure white -->
+  <path d="M152 136 h72 v240 h-72 z" fill="#ffffff"/>
+  
+  <!-- The 'L' in neon green -->
+  <path d="M288 136 h72 v168 h72 v72 h-144 z" fill="#4ade80"/>
+</svg>
